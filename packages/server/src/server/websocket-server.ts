@@ -83,6 +83,7 @@ import {
 } from "@getpaseo/protocol/browser-automation/capabilities";
 import type { BrowserToolsBroker } from "./browser-tools/broker.js";
 import type { DaemonRuntimeConfig } from "./session/daemon/daemon-session.js";
+import { HostToolsRegistry } from "./host-tools/host-tools-registry.js";
 
 const WS_CLOSE_DAEMON_AUTH_FAILED = 4401;
 
@@ -470,6 +471,7 @@ export class VoiceAssistantWebSocketServer {
   private readonly worktreesRoot: string | undefined;
   private readonly daemonConfigStore: DaemonConfigStore;
   private readonly pushTokenStore: PushTokenStore;
+  private readonly hostTools: HostToolsRegistry;
   private readonly pushNotificationSender: PushNotificationSender;
   private readonly mcpBaseUrl: string | null;
   private speech!: SpeechService | null;
@@ -616,6 +618,9 @@ export class VoiceAssistantWebSocketServer {
 
     const pushLogger = this.logger.child({ module: "push" });
     this.pushTokenStore = new PushTokenStore(pushLogger, join(paseoHome, "push-tokens.json"));
+    this.hostTools = new HostToolsRegistry({
+      logger: this.logger.child({ module: "host-tools" }),
+    });
     this.pushNotificationSender =
       pushNotificationSender ?? createPushNotificationSender(pushLogger, this.pushTokenStore);
 
@@ -1158,6 +1163,7 @@ export class VoiceAssistantWebSocketServer {
       },
       downloadTokenStore: this.downloadTokenStore,
       pushTokenStore: this.pushTokenStore,
+      hostTools: this.hostTools,
       paseoHome: this.paseoHome,
       worktreesRoot: this.worktreesRoot,
       agentManager: this.agentManager,
@@ -1416,6 +1422,8 @@ export class VoiceAssistantWebSocketServer {
         selectiveAgentTimeline: true,
         // COMPAT(stableProjectIdentity): added in v0.1.109, remove gate after 2027-01-15.
         stableProjectIdentity: true,
+        // COMPAT(hostTools): added in v0.1.X, drop the gate when floor >= v0.1.X.
+        hostTools: this.hostTools.features(),
       },
     };
   }

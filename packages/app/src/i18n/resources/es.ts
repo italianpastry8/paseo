@@ -2173,4 +2173,217 @@ export const es: TranslationResources = {
       },
     },
   },
+  hostTools: {
+    menu: {
+      trigger: "Herramientas del host",
+      title: "Herramientas del host",
+      items: {
+        quota: "Centro de cuotas",
+        roles: "Roles y modelos",
+        skills: "Gestor de skills",
+      },
+    },
+    sections: {
+      quota: {
+        title: "Centro de cuotas",
+        subtitle: "Uso de las plataformas que exporta el host",
+        badge: "Cuota",
+      },
+      roles: {
+        title: "Roles y modelos",
+        subtitle: "Cambia el modelo con el que se ejecuta el rol",
+        badge: "Roles",
+      },
+      skills: {
+        title: "Gestor de skills",
+        subtitle: "Activa, desactiva y agrupa los skills del host",
+        badge: "Skills",
+      },
+    },
+    empty: {
+      title: "Las herramientas del host no están disponibles",
+      hint: "Este host no anuncia ninguna capacidad de host-tools.",
+    },
+    unsupported: {
+      quota: {
+        title: "El centro de cuotas no está disponible",
+        hint: "Actualiza el host para usar esto.",
+      },
+      roles: {
+        title: "El cambio de rol y modelo no está disponible",
+        hint: "Actualiza el host para usar esto.",
+      },
+      skills: {
+        title: "El gestor de skills no está disponible",
+        hint: "Actualiza el host para usar esto.",
+      },
+    },
+    common: {
+      unknownTime: "desconocido",
+      justNow: "ahora mismo",
+      secondsAgo: "hace {{count}} segundos",
+      minutesAgo: "hace {{count}} minutos",
+      hoursAgo: "hace {{count}} horas",
+      daysAgo: "hace {{count}} días",
+      back: "Atrás",
+      cancel: "Cancelar",
+      clearSearch: "Borrar búsqueda",
+    },
+    errors: {
+      file_missing: {
+        title: "Falta el archivo de exportación de cuotas",
+        description: "Ejecuta el comando de actualización del host para generar la exportación.",
+      },
+      file_corrupt: {
+        title: "La exportación de cuotas está dañada",
+        description: "Repara o regenera el archivo antes de continuar.",
+      },
+      version_mismatch: {
+        title: "Versión de exportación de cuotas no admitida",
+        description:
+          "Actualiza el plugin de exportación de cuotas del host a una versión compatible.",
+      },
+      cli_missing: {
+        title: "Falta la CLI de actualización",
+        description:
+          "Instala la CLI de actualización del host para habilitar la actualización manual.",
+      },
+      cooldown: {
+        title: "Actualización en enfriamiento",
+        description: "Espera unos segundos antes de intentarlo de nuevo.",
+      },
+      in_progress: {
+        title: "Ya hay una actualización en curso",
+        description: "El host entregará una nueva instantánea en cuanto termine.",
+      },
+      config_missing: {
+        title: "Falta el archivo de configuración",
+        description: "El host espera que el archivo de configuración esté presente.",
+      },
+      config_corrupt: {
+        title: "El archivo de configuración está dañado",
+        description: "No se modificó el archivo. Repáralo antes de reintentar.",
+      },
+      no_active_preset: {
+        title: "Sin preset activo",
+        description: "Selecciona un preset en la configuración del host antes de cambiar roles.",
+      },
+      invalid_model: {
+        title: "Id de modelo no válido",
+        description: "El id del modelo debe tener la forma provider/model.",
+      },
+      move_conflict: {
+        title: "Conflicto al mover",
+        description: "Ya existe una carpeta de skill con el mismo nombre en el destino.",
+      },
+      permission_denied: {
+        title: "Permiso denegado",
+        description: "El host rechazó aplicar el cambio.",
+      },
+      unknown: {
+        title: "Algo salió mal",
+        description: "Consulta los registros del host para ver el error subyacente.",
+      },
+    },
+    quota: {
+      title: "Exportación de cuotas",
+      loading: "Cargando cuotas...",
+      fetchedAt: "Obtenida {{time}}",
+      refresh: "Actualizar",
+      refreshing: "Actualizando...",
+      stale: {
+        title: "Los datos están obsoletos",
+        description:
+          "La última exportación tiene más de 5 minutos. Desliza hacia abajo para actualizar.",
+      },
+      versionMismatch: {
+        title: "Versión de exportación no admitida",
+        description: "El plugin de exportación del host necesita actualizarse.",
+      },
+      providerError: "Error",
+      noEntries: "{{provider}} aún no tiene entradas",
+      unlimited: "Ilimitado",
+      progressLabel: "Restante de {{name}} {{value}}",
+      resetsAt: "Se reinicia a las {{time}}",
+      empty: {
+        title: "Aún no hay datos de cuota",
+        hint: "Ejecuta una actualización manual para llenar la exportación.",
+      },
+    },
+    roles: {
+      title: "Roles y modelos",
+      loading: "Cargando roles...",
+      presetName: "Preset: {{name}}",
+      noModel: "Sin modelo asignado",
+      variant: "Variante: {{value}}",
+      hasVariant: "Variante",
+      rowAccessibility: "Rol {{role}}",
+      empty: {
+        title: "No se encontraron roles",
+        hint: "Activa un preset en el host para ver sus roles.",
+      },
+      writeFailed: "Error al actualizar el modelo del rol",
+      writeSuccess: "Rol actualizado",
+      dismissSuccess: "Descartar",
+      successHint: {
+        title: "{{role}} ahora usa {{model}}",
+        description: "Las nuevas sesiones aplicarán esto automáticamente.",
+      },
+      modelPicker: {
+        subtitle: "Actual: {{current}}",
+        searchPlaceholder: "Buscar modelos...",
+        loading: "Cargando modelos...",
+        errorTitle: "Error al cargar modelos",
+        noMatches: "Ningún modelo coincide con tu búsqueda",
+        degraded: {
+          title: "La lista de modelos está obsoleta",
+          description: "El host no pudo actualizar el catálogo. La lista puede estar incompleta.",
+        },
+      },
+      variantPicker: {
+        subtitle: "Modelo: {{model}}",
+        confirm: "Guardar",
+      },
+      variants: {
+        low: "Bajo",
+        medium: "Medio",
+        high: "Alto",
+      },
+    },
+    skills: {
+      title: "Gestor de skills",
+      loading: "Cargando skills...",
+      subtitle: "{{count}} skills",
+      createGroup: "Nuevo grupo",
+      createGroupAction: "Crear",
+      newGroup: "Nombre del nuevo grupo",
+      newGroupPlaceholder: "p. ej. lark-tools",
+      rename: "Renombrar",
+      renameAction: "Guardar",
+      renamePlaceholder: "Nombre del grupo",
+      renameGroup: "Renombrar grupo {{name}}",
+      deleteGroup: "Eliminar grupo {{name}}",
+      groupSubtitle: "{{count}} skills",
+      groupEmpty: "No hay skills en este grupo",
+      groupCreated: "Grupo creado",
+      groupCreateFailed: "Error al crear el grupo",
+      groupRenamed: "Grupo renombrado",
+      groupRenameFailed: "Error al renombrar el grupo",
+      groupDeleted: "Grupo eliminado",
+      groupDeleteFailed: "Error al eliminar el grupo",
+      groupUpdateFailed: "Error al actualizar los grupos",
+      skillMoved: "Skill movido",
+      skillUngrouped: "Skill sacado del grupo",
+      moveTo: "Mover a {{name}}",
+      moveToUngrouped: "Mover a sin grupo",
+      toggleSkill: "Alternar {{name}}",
+      toggleGroup: "Alternar grupo {{name}}",
+      toggleFailed: "Error al alternar el skill",
+      ungrouped: "Otros",
+      empty: {
+        title: "Aún no hay skills",
+        hint: "El host no ha registrado ningún skill.",
+      },
+    },
+  },
 };

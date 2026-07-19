@@ -239,6 +239,7 @@ import {
 import { runGitCommand } from "../utils/run-git-command.js";
 import { CreateAgentLifecycleDispatch } from "./agent/create-agent-lifecycle-dispatch.js";
 import { resolveWorktreeSourceCwd } from "./workspace-source.js";
+import { HostToolsRegistry } from "./host-tools/host-tools-registry.js";
 
 // TODO: Remove once all app store clients are on >=0.1.45 and understand arbitrary provider strings.
 // Clients before 0.1.45 validate providers with z.enum(["claude", "codex", "opencode"]) and reject
@@ -407,6 +408,7 @@ export interface SessionOptions {
   logger: pino.Logger;
   downloadTokenStore: DownloadTokenStore;
   pushTokenStore: PushTokenStore;
+  hostTools?: HostToolsRegistry;
   paseoHome: string;
   worktreesRoot?: string;
   agentManager: AgentManager;
@@ -587,6 +589,8 @@ export class Session {
   private readonly workspaceRecovery: WorkspaceRecoveryService;
   private readonly daemonConfigStore: DaemonConfigStore;
   private readonly pushTokenStore: PushTokenStore;
+  private readonly hostTools: HostToolsRegistry | null;
+  private readonly hostToolsSubscriptions = new Map<string, () => void>();
   private unsubscribeAgentEvents: (() => void) | null = null;
   private viewedTimelineAgentIds = new Set<string>();
   private readonly viewedTimelineAgentIdsBySource = new Map<object, Set<string>>();
@@ -644,6 +648,7 @@ export class Session {
       logger,
       downloadTokenStore,
       pushTokenStore,
+      hostTools,
       paseoHome,
       worktreesRoot,
       agentManager,
@@ -694,6 +699,7 @@ export class Session {
     this.onLifecycleIntent = onLifecycleIntent ?? null;
     this.onWorkspaceRecovered = onWorkspaceRecovered ?? null;
     this.pushTokenStore = pushTokenStore;
+    this.hostTools = hostTools ?? null;
     this.paseoHome = paseoHome;
     this.worktreesRoot = worktreesRoot;
     this.sessionLogger = logger.child({
@@ -1643,8 +1649,202 @@ export class Session {
       this.dispatchProviderMessage(msg) ??
       this.dispatchTerminalMessage(msg) ??
       this.dispatchChatScheduleLoopMessage(msg) ??
+      this.dispatchHostToolsMessage(msg) ??
       this.dispatchMiscMessage(msg);
     if (promise) await promise;
+  }
+
+  private dispatchHostToolsMessage(msg: SessionInboundMessage): Promise<void> | undefined {
+    switch (msg.type) {
+      case "host.quota.get.request":
+        return this.handleHostQuotaGet(msg.requestId);
+      case "host.quota.subscribe.request":
+        return this.handleHostToolsSubscribe("quota", msg.subscribe, msg.requestId);
+      case "host.quota.refresh.request":
+        return this.handleHostQuotaRefresh(msg.requestId);
+      case "host.roles.get.request":
+        return this.handleHostRolesGet(msg.requestId);
+      case "host.roles.subscribe.request":
+        return this.handleHostToolsSubscribe("roles", msg.subscribe, msg.requestId);
+      case "host.roles.list_models.request":
+        return this.handleHostRolesListModels(msg.requestId);
+      case "host.roles.set_model.request":
+        return this.handleHostRolesSetModel(msg);
+      case "host.skills.list.request":
+        return this.handleHostSkillsList(msg.requestId);
+      case "host.skills.subscribe.request":
+        return this.handleHostToolsSubscribe("skills", msg.subscribe, msg.requestId);
+      case "host.skills.toggle.request":
+        return this.handleHostSkillsToggle(msg);
+      case "host.skills.groups.update.request":
+        return this.handleHostSkillsGroupsUpdate(msg);
+      default:
+        return undefined;
+    }
+  }
+
+  private async handleHostQuotaGet(requestId: string): Promise<void> {
+    const snapshot = this.hostTools
+      ? await this.hostTools.quota().getSnapshot()
+      : { providers: [], error: { code: "unavailable", message: "host tools 未启用" } };
+    this.emit({ type: "host.quota.get.response", payload: { ...snapshot, requestId } });
+  }
+
+  private async handleHostQuotaRefresh(requestId: string): Promise<void> {
+    const result = this.hostTools
+      ? await this.hostTools.quota().refresh()
+      : { ok: false, error: { code: "unavailable", message: "host tools 未启用" } };
+    this.emit({
+      type: "host.quota.refresh.response",
+      payload: { requestId, ok: result.ok, ...(result.error ? { error: result.error } : {}) },
+    });
+  }
+
+  private async handleHostRolesGet(requestId: string): Promise<void> {
+    const snapshot = this.hostTools
+      ? await this.hostTools.roles().getSnapshot()
+      : { roles: [], error: { code: "unavailable", message: "host tools 未启用" } };
+    this.emit({ type: "host.roles.get.response", payload: { ...snapshot, requestId } });
+  }
+
+  private async handleHostRolesListModels(requestId: string): Promise<void> {
+    const result = this.hostTools
+      ? await this.hostTools.roles().listModels()
+      : { models: [], error: { code: "unavailable", message: "host tools 未启用" } };
+    this.emit({
+      type: "host.roles.list_models.response",
+      payload: {
+        requestId,
+        models: result.models,
+        ...(result.cachedAtMs !== undefined ? { cachedAtMs: result.cachedAtMs } : {}),
+        ...(result.degraded ? { degraded: true } : {}),
+        ...(result.error ? { error: result.error } : {}),
+      },
+    });
+  }
+
+  private async handleHostRolesSetModel(
+    msg: Extract<SessionInboundMessage, { type: "host.roles.set_model.request" }>,
+  ): Promise<void> {
+    const result = this.hostTools
+      ? await this.hostTools
+          .roles()
+          .setModel({ role: msg.role, model: msg.model, variant: msg.variant })
+      : { ok: false, error: { code: "unavailable", message: "host tools 未启用" } };
+    this.emit({
+      type: "host.roles.set_model.response",
+      payload: {
+        requestId: msg.requestId,
+        ok: result.ok,
+        ...(result.error ? { error: result.error } : {}),
+      },
+    });
+  }
+
+  private async handleHostSkillsList(requestId: string): Promise<void> {
+    const snapshot = this.hostTools
+      ? await this.hostTools.skills().getSnapshot()
+      : { skills: [], groups: [], error: { code: "unavailable", message: "host tools 未启用" } };
+    this.emit({ type: "host.skills.list.response", payload: { ...snapshot, requestId } });
+  }
+
+  private async handleHostSkillsToggle(
+    msg: Extract<SessionInboundMessage, { type: "host.skills.toggle.request" }>,
+  ): Promise<void> {
+    const result = this.hostTools
+      ? await this.hostTools.skills().toggle({ name: msg.name, enable: msg.enable })
+      : { ok: false, error: { code: "unavailable", message: "host tools 未启用" } };
+    this.emit({
+      type: "host.skills.toggle.response",
+      payload: {
+        requestId: msg.requestId,
+        ok: result.ok,
+        ...(result.error ? { error: result.error } : {}),
+      },
+    });
+  }
+
+  private async handleHostSkillsGroupsUpdate(
+    msg: Extract<SessionInboundMessage, { type: "host.skills.groups.update.request" }>,
+  ): Promise<void> {
+    const result = this.hostTools
+      ? await this.hostTools.skills().updateGroups({ groups: msg.groups })
+      : { ok: false, error: { code: "unavailable", message: "host tools 未启用" } };
+    this.emit({
+      type: "host.skills.groups.update.response",
+      payload: {
+        requestId: msg.requestId,
+        ok: result.ok,
+        ...(result.error ? { error: result.error } : {}),
+      },
+    });
+  }
+
+  private async handleHostToolsSubscribe(
+    namespace: "quota" | "roles" | "skills",
+    subscribe: boolean,
+    requestId: string,
+  ): Promise<void> {
+    if (this.hostTools) {
+      if (subscribe && !this.hostToolsSubscriptions.has(namespace)) {
+        this.hostToolsSubscriptions.set(namespace, this.subscribeHostToolsNamespace(namespace));
+      } else if (!subscribe) {
+        this.hostToolsSubscriptions.get(namespace)?.();
+        this.hostToolsSubscriptions.delete(namespace);
+      }
+    }
+    switch (namespace) {
+      case "quota":
+        this.emit({
+          type: "host.quota.subscribe.response",
+          payload: { requestId, ok: this.hostTools !== null },
+        });
+        break;
+      case "roles":
+        this.emit({
+          type: "host.roles.subscribe.response",
+          payload: { requestId, ok: this.hostTools !== null },
+        });
+        break;
+      case "skills":
+        this.emit({
+          type: "host.skills.subscribe.response",
+          payload: { requestId, ok: this.hostTools !== null },
+        });
+        break;
+    }
+  }
+
+  private subscribeHostToolsNamespace(namespace: "quota" | "roles" | "skills"): () => void {
+    if (!this.hostTools) {
+      return () => {};
+    }
+    switch (namespace) {
+      case "quota": {
+        const service = this.hostTools.quota();
+        const unsubscribe = service.onSnapshotChanged((snapshot) => {
+          this.emit({ type: "host.quota.changed", payload: snapshot });
+        });
+        service.start();
+        return unsubscribe;
+      }
+      case "roles": {
+        const service = this.hostTools.roles();
+        const unsubscribe = service.onSnapshotChanged((snapshot) => {
+          this.emit({ type: "host.roles.changed", payload: snapshot });
+        });
+        service.start();
+        return unsubscribe;
+      }
+      case "skills": {
+        const service = this.hostTools.skills();
+        const unsubscribe = service.onSnapshotChanged((snapshot) => {
+          this.emit({ type: "host.skills.changed", payload: snapshot });
+        });
+        service.start();
+        return unsubscribe;
+      }
+    }
   }
 
   private dispatchVoiceAndControlMessage(msg: SessionInboundMessage): Promise<void> | undefined {
@@ -6292,6 +6492,10 @@ export class Session {
       this.unsubscribeAgentEvents();
       this.unsubscribeAgentEvents = null;
     }
+    for (const unsubscribe of this.hostToolsSubscriptions.values()) {
+      unsubscribe();
+    }
+    this.hostToolsSubscriptions.clear();
     this.agentUpdates.dispose();
     await this.hubExecutionController?.cleanup();
     if (this.unsubscribeTerminalWorkspaceContributionEvents) {

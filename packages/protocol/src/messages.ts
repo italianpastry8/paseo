@@ -2352,6 +2352,80 @@ export const HubExecutionAgentCreateRequestSchema = z.object({
 
 export type HubExecutionAgentCreateRequest = z.infer<typeof HubExecutionAgentCreateRequestSchema>;
 
+// ============================================================================
+// Host Tools Inbound Messages (host.quota.* / host.roles.* / host.skills.*)
+// ============================================================================
+
+export const HostQuotaGetRequestMessageSchema = z.object({
+  type: z.literal("host.quota.get.request"),
+  requestId: z.string(),
+});
+
+export const HostQuotaSubscribeRequestMessageSchema = z.object({
+  type: z.literal("host.quota.subscribe.request"),
+  subscribe: z.boolean(),
+  requestId: z.string(),
+});
+
+export const HostQuotaRefreshRequestMessageSchema = z.object({
+  type: z.literal("host.quota.refresh.request"),
+  requestId: z.string(),
+});
+
+export const HostRolesGetRequestMessageSchema = z.object({
+  type: z.literal("host.roles.get.request"),
+  requestId: z.string(),
+});
+
+export const HostRolesSubscribeRequestMessageSchema = z.object({
+  type: z.literal("host.roles.subscribe.request"),
+  subscribe: z.boolean(),
+  requestId: z.string(),
+});
+
+export const HostRolesListModelsRequestMessageSchema = z.object({
+  type: z.literal("host.roles.list_models.request"),
+  requestId: z.string(),
+});
+
+export const HostRolesSetModelRequestMessageSchema = z.object({
+  type: z.literal("host.roles.set_model.request"),
+  role: z.string(),
+  model: z.string(),
+  variant: z.string().optional(),
+  requestId: z.string(),
+});
+
+export const HostSkillsListRequestMessageSchema = z.object({
+  type: z.literal("host.skills.list.request"),
+  requestId: z.string(),
+});
+
+export const HostSkillsSubscribeRequestMessageSchema = z.object({
+  type: z.literal("host.skills.subscribe.request"),
+  subscribe: z.boolean(),
+  requestId: z.string(),
+});
+
+export const HostSkillsToggleRequestMessageSchema = z.object({
+  type: z.literal("host.skills.toggle.request"),
+  name: z.string(),
+  enable: z.boolean(),
+  requestId: z.string(),
+});
+
+export const HostSkillGroupInputSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  skills: z.array(z.string()),
+});
+
+export const HostSkillsGroupsUpdateRequestMessageSchema = z.object({
+  type: z.literal("host.skills.groups.update.request"),
+  groups: z.array(HostSkillGroupInputSchema),
+  requestId: z.string(),
+});
+
 export const SessionInboundMessageSchema = z.discriminatedUnion("type", [
   HubExecutionAgentCreateRequestSchema,
   BrowserAutomationExecuteResponseSchema,
@@ -2502,6 +2576,17 @@ export const SessionInboundMessageSchema = z.discriminatedUnion("type", [
   LoopInspectRequestSchema,
   LoopLogsRequestSchema,
   LoopStopRequestSchema,
+  HostQuotaGetRequestMessageSchema,
+  HostQuotaSubscribeRequestMessageSchema,
+  HostQuotaRefreshRequestMessageSchema,
+  HostRolesGetRequestMessageSchema,
+  HostRolesSubscribeRequestMessageSchema,
+  HostRolesListModelsRequestMessageSchema,
+  HostRolesSetModelRequestMessageSchema,
+  HostSkillsListRequestMessageSchema,
+  HostSkillsSubscribeRequestMessageSchema,
+  HostSkillsToggleRequestMessageSchema,
+  HostSkillsGroupsUpdateRequestMessageSchema,
 ]);
 
 export type SessionInboundMessage = z.infer<typeof SessionInboundMessageSchema>;
@@ -2735,6 +2820,14 @@ export const ServerInfoStatusPayloadSchema = z
         selectiveAgentTimeline: z.boolean().optional(),
         // COMPAT(stableProjectIdentity): added in v0.1.109, remove gate after 2027-01-15.
         stableProjectIdentity: z.boolean().optional(),
+        // COMPAT(hostTools): added in v0.1.X, drop the gate when floor >= v0.1.X.
+        hostTools: z
+          .object({
+            quota: z.boolean().optional(),
+            roles: z.boolean().optional(),
+            skills: z.boolean().optional(),
+          })
+          .optional(),
       })
       .optional(),
   })
@@ -4981,6 +5074,183 @@ export function parseHubExecutionOutboundMessage(value: unknown): HubExecutionOu
 
 export type DaemonUpdateProgressMessage = z.infer<typeof DaemonUpdateProgressMessageSchema>;
 
+// ============================================================================
+// Host Tools Outbound Messages (host.quota.* / host.roles.* / host.skills.*)
+// ============================================================================
+
+export const HostToolsErrorSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+});
+
+export const HostQuotaEntrySchema = z.object({
+  name: z.string(),
+  window: z.string().optional(),
+  percentRemaining: z.number().optional(),
+  value: z.string().optional(),
+  resetAtMs: z.number().optional(),
+  unlimited: z.boolean().optional(),
+});
+
+export const HostQuotaProviderSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  status: z.enum(["ok", "error"]),
+  error: z.string().optional(),
+  fetchedAtMs: z.number().optional(),
+  entries: z.array(HostQuotaEntrySchema),
+});
+
+export const HostQuotaSnapshotSchema = z.object({
+  generatedAtMs: z.number().optional(),
+  providers: z.array(HostQuotaProviderSchema),
+  versionMismatch: z.boolean().optional(),
+  enabledProviders: z.array(z.string()).optional(),
+  error: HostToolsErrorSchema.optional(),
+});
+
+export const HostQuotaGetResponseMessageSchema = z.object({
+  type: z.literal("host.quota.get.response"),
+  payload: HostQuotaSnapshotSchema.extend({ requestId: z.string() }),
+});
+
+export const HostQuotaSubscribeResponseMessageSchema = z.object({
+  type: z.literal("host.quota.subscribe.response"),
+  payload: z.object({
+    requestId: z.string(),
+    ok: z.boolean(),
+  }),
+});
+
+export const HostQuotaRefreshResponseMessageSchema = z.object({
+  type: z.literal("host.quota.refresh.response"),
+  payload: z.object({
+    requestId: z.string(),
+    ok: z.boolean(),
+    error: HostToolsErrorSchema.optional(),
+  }),
+});
+
+export const HostQuotaChangedMessageSchema = z.object({
+  type: z.literal("host.quota.changed"),
+  payload: HostQuotaSnapshotSchema,
+});
+
+export const HostRoleAssignmentSchema = z.object({
+  role: z.string(),
+  model: z.string().optional(),
+  variant: z.string().optional(),
+  hasVariantField: z.boolean(),
+});
+
+export const HostRolesSnapshotSchema = z.object({
+  presetName: z.string().optional(),
+  roles: z.array(HostRoleAssignmentSchema),
+  error: HostToolsErrorSchema.optional(),
+});
+
+export const HostRolesGetResponseMessageSchema = z.object({
+  type: z.literal("host.roles.get.response"),
+  payload: HostRolesSnapshotSchema.extend({ requestId: z.string() }),
+});
+
+export const HostRolesSubscribeResponseMessageSchema = z.object({
+  type: z.literal("host.roles.subscribe.response"),
+  payload: z.object({
+    requestId: z.string(),
+    ok: z.boolean(),
+  }),
+});
+
+export const HostRolesListModelsResponseMessageSchema = z.object({
+  type: z.literal("host.roles.list_models.response"),
+  payload: z.object({
+    requestId: z.string(),
+    models: z.array(z.string()),
+    cachedAtMs: z.number().optional(),
+    degraded: z.boolean().optional(),
+    error: HostToolsErrorSchema.optional(),
+  }),
+});
+
+export const HostRolesSetModelResponseMessageSchema = z.object({
+  type: z.literal("host.roles.set_model.response"),
+  payload: z.object({
+    requestId: z.string(),
+    ok: z.boolean(),
+    error: HostToolsErrorSchema.optional(),
+  }),
+});
+
+export const HostRolesChangedMessageSchema = z.object({
+  type: z.literal("host.roles.changed"),
+  payload: HostRolesSnapshotSchema,
+});
+
+export const HostSkillInstanceSchema = z.object({
+  rootId: z.string(),
+  path: z.string(),
+  enabled: z.boolean(),
+  isSymlink: z.boolean().optional(),
+});
+
+export const HostSkillSchema = z.object({
+  name: z.string(),
+  description: z.string().optional(),
+  zhSummary: z.string().optional(),
+  scopes: z.array(z.string()),
+  enabled: z.boolean(),
+  instances: z.array(HostSkillInstanceSchema),
+});
+
+export const HostSkillGroupSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  skills: z.array(z.string()),
+});
+
+export const HostSkillsSnapshotSchema = z.object({
+  skills: z.array(HostSkillSchema),
+  groups: z.array(HostSkillGroupSchema),
+  error: HostToolsErrorSchema.optional(),
+});
+
+export const HostSkillsListResponseMessageSchema = z.object({
+  type: z.literal("host.skills.list.response"),
+  payload: HostSkillsSnapshotSchema.extend({ requestId: z.string() }),
+});
+
+export const HostSkillsSubscribeResponseMessageSchema = z.object({
+  type: z.literal("host.skills.subscribe.response"),
+  payload: z.object({
+    requestId: z.string(),
+    ok: z.boolean(),
+  }),
+});
+
+export const HostSkillsToggleResponseMessageSchema = z.object({
+  type: z.literal("host.skills.toggle.response"),
+  payload: z.object({
+    requestId: z.string(),
+    ok: z.boolean(),
+    error: HostToolsErrorSchema.optional(),
+  }),
+});
+
+export const HostSkillsGroupsUpdateResponseMessageSchema = z.object({
+  type: z.literal("host.skills.groups.update.response"),
+  payload: z.object({
+    requestId: z.string(),
+    ok: z.boolean(),
+    error: HostToolsErrorSchema.optional(),
+  }),
+});
+
+export const HostSkillsChangedMessageSchema = z.object({
+  type: z.literal("host.skills.changed"),
+  payload: HostSkillsSnapshotSchema,
+});
+
 export const SessionOutboundMessageSchema = z.discriminatedUnion("type", [
   HubExecutionAgentCreateResponseSchema,
   HubExecutionAgentUpdateSchema,
@@ -5143,9 +5413,35 @@ export const SessionOutboundMessageSchema = z.discriminatedUnion("type", [
   LoopStopResponseSchema,
   DaemonUpdateProgressMessageSchema,
   DaemonUpdateResponseSchema,
+  HostQuotaGetResponseMessageSchema,
+  HostQuotaSubscribeResponseMessageSchema,
+  HostQuotaRefreshResponseMessageSchema,
+  HostQuotaChangedMessageSchema,
+  HostRolesGetResponseMessageSchema,
+  HostRolesSubscribeResponseMessageSchema,
+  HostRolesListModelsResponseMessageSchema,
+  HostRolesSetModelResponseMessageSchema,
+  HostRolesChangedMessageSchema,
+  HostSkillsListResponseMessageSchema,
+  HostSkillsSubscribeResponseMessageSchema,
+  HostSkillsToggleResponseMessageSchema,
+  HostSkillsGroupsUpdateResponseMessageSchema,
+  HostSkillsChangedMessageSchema,
 ]);
 
 export type SessionOutboundMessage = z.infer<typeof SessionOutboundMessageSchema>;
+
+// Host tools payload types
+export type HostToolsError = z.infer<typeof HostToolsErrorSchema>;
+export type HostQuotaEntry = z.infer<typeof HostQuotaEntrySchema>;
+export type HostQuotaProvider = z.infer<typeof HostQuotaProviderSchema>;
+export type HostQuotaSnapshot = z.infer<typeof HostQuotaSnapshotSchema>;
+export type HostRoleAssignment = z.infer<typeof HostRoleAssignmentSchema>;
+export type HostRolesSnapshot = z.infer<typeof HostRolesSnapshotSchema>;
+export type HostSkillInstance = z.infer<typeof HostSkillInstanceSchema>;
+export type HostSkill = z.infer<typeof HostSkillSchema>;
+export type HostSkillGroup = z.infer<typeof HostSkillGroupSchema>;
+export type HostSkillsSnapshot = z.infer<typeof HostSkillsSnapshotSchema>;
 
 // Type exports for individual message types
 export type ActivityLogMessage = z.infer<typeof ActivityLogMessageSchema>;

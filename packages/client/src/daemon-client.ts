@@ -14,6 +14,10 @@ import {
   DaemonUpdateResponseSchema,
   SessionInboundMessageSchema,
   type ServerInfoStatusPayload,
+  type HostQuotaSnapshot,
+  type HostRolesSnapshot,
+  type HostSkillsSnapshot,
+  type HostToolsError,
 } from "@getpaseo/protocol/messages";
 import { validateWSOutboundMessage } from "@getpaseo/protocol/validation/ws-outbound";
 import type {
@@ -550,6 +554,20 @@ export interface FetchAgentOptions {
   agentId: string;
   requestId?: string;
   timeout?: number;
+}
+export interface HostToolsCallOptions {
+  requestId?: string;
+  timeout?: number;
+}
+export interface HostToolsActionResult {
+  ok: boolean;
+  error?: HostToolsError;
+}
+export interface HostRolesListModelsResult {
+  models: string[];
+  cachedAtMs?: number;
+  degraded?: boolean;
+  error?: HostToolsError;
 }
 type LegacyFetchAgentOptions = Omit<FetchAgentOptions, "agentId">;
 export interface FetchAgentTimelineOptions {
@@ -5096,6 +5114,290 @@ export class DaemonClient {
         resolve(event);
       });
     });
+  }
+
+  // ============================================================================
+  // Host Tools (host.quota.* / host.roles.* / host.skills.*)
+  // ============================================================================
+
+  async hostQuotaGet(options?: HostToolsCallOptions): Promise<HostQuotaSnapshot> {
+    const resolvedRequestId = this.createRequestId(options?.requestId);
+    const message = SessionInboundMessageSchema.parse({
+      type: "host.quota.get.request",
+      requestId: resolvedRequestId,
+    });
+    return this.sendRequest({
+      requestId: resolvedRequestId,
+      message,
+      timeout: options?.timeout,
+      options: { skipQueue: true },
+      select: (msg) => {
+        if (msg.type !== "host.quota.get.response") {
+          return null;
+        }
+        if (msg.payload.requestId !== resolvedRequestId) {
+          return null;
+        }
+        return msg.payload;
+      },
+    });
+  }
+
+  async hostQuotaSubscribe(subscribe: boolean, options?: HostToolsCallOptions): Promise<boolean> {
+    const resolvedRequestId = this.createRequestId(options?.requestId);
+    const message = SessionInboundMessageSchema.parse({
+      type: "host.quota.subscribe.request",
+      subscribe,
+      requestId: resolvedRequestId,
+    });
+    return this.sendRequest({
+      requestId: resolvedRequestId,
+      message,
+      timeout: options?.timeout,
+      select: (msg) => {
+        if (msg.type !== "host.quota.subscribe.response") {
+          return null;
+        }
+        if (msg.payload.requestId !== resolvedRequestId) {
+          return null;
+        }
+        return msg.payload.ok;
+      },
+    });
+  }
+
+  async hostQuotaRefresh(options?: HostToolsCallOptions): Promise<HostToolsActionResult> {
+    const resolvedRequestId = this.createRequestId(options?.requestId);
+    const message = SessionInboundMessageSchema.parse({
+      type: "host.quota.refresh.request",
+      requestId: resolvedRequestId,
+    });
+    return this.sendRequest({
+      requestId: resolvedRequestId,
+      message,
+      timeout: options?.timeout,
+      select: (msg) => {
+        if (msg.type !== "host.quota.refresh.response") {
+          return null;
+        }
+        if (msg.payload.requestId !== resolvedRequestId) {
+          return null;
+        }
+        return { ok: msg.payload.ok, ...(msg.payload.error ? { error: msg.payload.error } : {}) };
+      },
+    });
+  }
+
+  onHostQuotaChanged(handler: (snapshot: HostQuotaSnapshot) => void): () => void {
+    return this.on("host.quota.changed", (message) => handler(message.payload));
+  }
+
+  async hostRolesGet(options?: HostToolsCallOptions): Promise<HostRolesSnapshot> {
+    const resolvedRequestId = this.createRequestId(options?.requestId);
+    const message = SessionInboundMessageSchema.parse({
+      type: "host.roles.get.request",
+      requestId: resolvedRequestId,
+    });
+    return this.sendRequest({
+      requestId: resolvedRequestId,
+      message,
+      timeout: options?.timeout,
+      options: { skipQueue: true },
+      select: (msg) => {
+        if (msg.type !== "host.roles.get.response") {
+          return null;
+        }
+        if (msg.payload.requestId !== resolvedRequestId) {
+          return null;
+        }
+        return msg.payload;
+      },
+    });
+  }
+
+  async hostRolesSubscribe(subscribe: boolean, options?: HostToolsCallOptions): Promise<boolean> {
+    const resolvedRequestId = this.createRequestId(options?.requestId);
+    const message = SessionInboundMessageSchema.parse({
+      type: "host.roles.subscribe.request",
+      subscribe,
+      requestId: resolvedRequestId,
+    });
+    return this.sendRequest({
+      requestId: resolvedRequestId,
+      message,
+      timeout: options?.timeout,
+      select: (msg) => {
+        if (msg.type !== "host.roles.subscribe.response") {
+          return null;
+        }
+        if (msg.payload.requestId !== resolvedRequestId) {
+          return null;
+        }
+        return msg.payload.ok;
+      },
+    });
+  }
+
+  async hostRolesListModels(options?: HostToolsCallOptions): Promise<HostRolesListModelsResult> {
+    const resolvedRequestId = this.createRequestId(options?.requestId);
+    const message = SessionInboundMessageSchema.parse({
+      type: "host.roles.list_models.request",
+      requestId: resolvedRequestId,
+    });
+    return this.sendRequest({
+      requestId: resolvedRequestId,
+      message,
+      timeout: options?.timeout,
+      select: (msg) => {
+        if (msg.type !== "host.roles.list_models.response") {
+          return null;
+        }
+        if (msg.payload.requestId !== resolvedRequestId) {
+          return null;
+        }
+        return {
+          models: msg.payload.models,
+          ...(msg.payload.cachedAtMs !== undefined ? { cachedAtMs: msg.payload.cachedAtMs } : {}),
+          ...(msg.payload.degraded ? { degraded: true } : {}),
+          ...(msg.payload.error ? { error: msg.payload.error } : {}),
+        };
+      },
+    });
+  }
+
+  async hostRolesSetModel(
+    input: { role: string; model: string; variant?: string },
+    options?: HostToolsCallOptions,
+  ): Promise<HostToolsActionResult> {
+    const resolvedRequestId = this.createRequestId(options?.requestId);
+    const message = SessionInboundMessageSchema.parse({
+      type: "host.roles.set_model.request",
+      role: input.role,
+      model: input.model,
+      ...(input.variant !== undefined ? { variant: input.variant } : {}),
+      requestId: resolvedRequestId,
+    });
+    return this.sendRequest({
+      requestId: resolvedRequestId,
+      message,
+      timeout: options?.timeout,
+      select: (msg) => {
+        if (msg.type !== "host.roles.set_model.response") {
+          return null;
+        }
+        if (msg.payload.requestId !== resolvedRequestId) {
+          return null;
+        }
+        return { ok: msg.payload.ok, ...(msg.payload.error ? { error: msg.payload.error } : {}) };
+      },
+    });
+  }
+
+  onHostRolesChanged(handler: (snapshot: HostRolesSnapshot) => void): () => void {
+    return this.on("host.roles.changed", (message) => handler(message.payload));
+  }
+
+  async hostSkillsList(options?: HostToolsCallOptions): Promise<HostSkillsSnapshot> {
+    const resolvedRequestId = this.createRequestId(options?.requestId);
+    const message = SessionInboundMessageSchema.parse({
+      type: "host.skills.list.request",
+      requestId: resolvedRequestId,
+    });
+    return this.sendRequest({
+      requestId: resolvedRequestId,
+      message,
+      timeout: options?.timeout,
+      options: { skipQueue: true },
+      select: (msg) => {
+        if (msg.type !== "host.skills.list.response") {
+          return null;
+        }
+        if (msg.payload.requestId !== resolvedRequestId) {
+          return null;
+        }
+        return msg.payload;
+      },
+    });
+  }
+
+  async hostSkillsSubscribe(subscribe: boolean, options?: HostToolsCallOptions): Promise<boolean> {
+    const resolvedRequestId = this.createRequestId(options?.requestId);
+    const message = SessionInboundMessageSchema.parse({
+      type: "host.skills.subscribe.request",
+      subscribe,
+      requestId: resolvedRequestId,
+    });
+    return this.sendRequest({
+      requestId: resolvedRequestId,
+      message,
+      timeout: options?.timeout,
+      select: (msg) => {
+        if (msg.type !== "host.skills.subscribe.response") {
+          return null;
+        }
+        if (msg.payload.requestId !== resolvedRequestId) {
+          return null;
+        }
+        return msg.payload.ok;
+      },
+    });
+  }
+
+  async hostSkillsToggle(
+    input: { name: string; enable: boolean },
+    options?: HostToolsCallOptions,
+  ): Promise<HostToolsActionResult> {
+    const resolvedRequestId = this.createRequestId(options?.requestId);
+    const message = SessionInboundMessageSchema.parse({
+      type: "host.skills.toggle.request",
+      name: input.name,
+      enable: input.enable,
+      requestId: resolvedRequestId,
+    });
+    return this.sendRequest({
+      requestId: resolvedRequestId,
+      message,
+      timeout: options?.timeout,
+      select: (msg) => {
+        if (msg.type !== "host.skills.toggle.response") {
+          return null;
+        }
+        if (msg.payload.requestId !== resolvedRequestId) {
+          return null;
+        }
+        return { ok: msg.payload.ok, ...(msg.payload.error ? { error: msg.payload.error } : {}) };
+      },
+    });
+  }
+
+  async hostSkillsUpdateGroups(
+    input: { groups: Array<{ id: string; name: string; skills: string[] }> },
+    options?: HostToolsCallOptions,
+  ): Promise<HostToolsActionResult> {
+    const resolvedRequestId = this.createRequestId(options?.requestId);
+    const message = SessionInboundMessageSchema.parse({
+      type: "host.skills.groups.update.request",
+      groups: input.groups,
+      requestId: resolvedRequestId,
+    });
+    return this.sendRequest({
+      requestId: resolvedRequestId,
+      message,
+      timeout: options?.timeout,
+      select: (msg) => {
+        if (msg.type !== "host.skills.groups.update.response") {
+          return null;
+        }
+        if (msg.payload.requestId !== resolvedRequestId) {
+          return null;
+        }
+        return { ok: msg.payload.ok, ...(msg.payload.error ? { error: msg.payload.error } : {}) };
+      },
+    });
+  }
+
+  onHostSkillsChanged(handler: (snapshot: HostSkillsSnapshot) => void): () => void {
+    return this.on("host.skills.changed", (message) => handler(message.payload));
   }
 
   // ============================================================================

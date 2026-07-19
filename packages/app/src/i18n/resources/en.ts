@@ -2134,6 +2134,216 @@ export const en = {
       },
     },
   },
+  hostTools: {
+    menu: {
+      trigger: "Host tools",
+      title: "Host tools",
+      items: {
+        quota: "Quota center",
+        roles: "Roles and models",
+        skills: "Skill manager",
+      },
+    },
+    sections: {
+      quota: {
+        title: "Quota center",
+        subtitle: "Provider usage exported by the host",
+        badge: "Quota",
+      },
+      roles: {
+        title: "Roles and models",
+        subtitle: "Switch the model that the role runs against",
+        badge: "Roles",
+      },
+      skills: {
+        title: "Skill manager",
+        subtitle: "Enable, disable, and group the host's skills",
+        badge: "Skills",
+      },
+    },
+    empty: {
+      title: "Host tools are unavailable",
+      hint: "This host does not advertise any host-tools capabilities.",
+    },
+    unsupported: {
+      quota: {
+        title: "Quota center is unavailable",
+        hint: "Update the host to use this.",
+      },
+      roles: {
+        title: "Role and model switching is unavailable",
+        hint: "Update the host to use this.",
+      },
+      skills: {
+        title: "Skill manager is unavailable",
+        hint: "Update the host to use this.",
+      },
+    },
+    common: {
+      unknownTime: "unknown",
+      justNow: "just now",
+      secondsAgo: "{{count}} seconds ago",
+      minutesAgo: "{{count}} minutes ago",
+      hoursAgo: "{{count}} hours ago",
+      daysAgo: "{{count}} days ago",
+      back: "Back",
+      cancel: "Cancel",
+      clearSearch: "Clear search",
+    },
+    errors: {
+      file_missing: {
+        title: "Quota export file is missing",
+        description: "Run the host's refresh command to generate the export.",
+      },
+      file_corrupt: {
+        title: "Quota export is corrupted",
+        description: "Repair or regenerate the file before continuing.",
+      },
+      version_mismatch: {
+        title: "Unsupported quota export version",
+        description: "Update the host's quota export plugin to a compatible version.",
+      },
+      cli_missing: {
+        title: "Refresh CLI is missing",
+        description: "Install the host's refresh CLI to enable manual refresh.",
+      },
+      cooldown: {
+        title: "Refresh is cooling down",
+        description: "Wait a few seconds before trying again.",
+      },
+      in_progress: {
+        title: "A refresh is already in progress",
+        description: "The host will deliver a fresh snapshot as soon as it finishes.",
+      },
+      config_missing: {
+        title: "Configuration file is missing",
+        description: "The host expects a configuration file to be present.",
+      },
+      config_corrupt: {
+        title: "Configuration file is corrupted",
+        description: "The file was not modified. Repair the file before retrying.",
+      },
+      no_active_preset: {
+        title: "No active preset",
+        description: "Select a preset in the host's configuration before switching roles.",
+      },
+      invalid_model: {
+        title: "Invalid model id",
+        description: "The model id must be in the form provider/model.",
+      },
+      move_conflict: {
+        title: "Move conflict",
+        description: "A skill folder with the same name already exists at the destination.",
+      },
+      permission_denied: {
+        title: "Permission denied",
+        description: "The host refused to apply the change.",
+      },
+      unknown: {
+        title: "Something went wrong",
+        description: "Check the host logs for the underlying error.",
+      },
+    },
+    quota: {
+      title: "Quota export",
+      loading: "Loading quota...",
+      fetchedAt: "Fetched {{time}}",
+      refresh: "Refresh",
+      refreshing: "Refreshing...",
+      stale: {
+        title: "Data is stale",
+        description: "The last export is older than 5 minutes. Pull to refresh.",
+      },
+      versionMismatch: {
+        title: "Unsupported export version",
+        description: "The host's export plugin needs an update.",
+      },
+      providerError: "Error",
+      noEntries: "{{provider}} has no entries yet",
+      unlimited: "Unlimited",
+      progressLabel: "{{name}} remaining {{value}}",
+      resetsAt: "Resets at {{time}}",
+      empty: {
+        title: "No quota data yet",
+        hint: "Run a manual refresh to populate the export.",
+      },
+    },
+    roles: {
+      title: "Roles and models",
+      loading: "Loading roles...",
+      presetName: "Preset: {{name}}",
+      noModel: "No model assigned",
+      variant: "Variant: {{value}}",
+      hasVariant: "Variant",
+      rowAccessibility: "Role {{role}}",
+      empty: {
+        title: "No roles found",
+        hint: "Activate a preset on the host to see its roles.",
+      },
+      writeFailed: "Failed to update the role's model",
+      writeSuccess: "Role updated",
+      dismissSuccess: "Dismiss",
+      successHint: {
+        title: "{{role}} now uses {{model}}",
+        description: "New sessions will pick this up automatically.",
+      },
+      modelPicker: {
+        subtitle: "Current: {{current}}",
+        searchPlaceholder: "Search models...",
+        loading: "Loading models...",
+        errorTitle: "Failed to load models",
+        noMatches: "No models match your search",
+        degraded: {
+          title: "Model list is stale",
+          description: "The host could not refresh the model catalog. The list may be incomplete.",
+        },
+      },
+      variantPicker: {
+        subtitle: "Model: {{model}}",
+        confirm: "Save",
+      },
+      variants: {
+        low: "Low",
+        medium: "Medium",
+        high: "High",
+      },
+    },
+    skills: {
+      title: "Skill manager",
+      loading: "Loading skills...",
+      subtitle: "{{count}} skills",
+      createGroup: "New group",
+      createGroupAction: "Create",
+      newGroup: "New group name",
+      newGroupPlaceholder: "e.g. lark-tools",
+      rename: "Rename",
+      renameAction: "Save",
+      renamePlaceholder: "Group name",
+      renameGroup: "Rename group {{name}}",
+      deleteGroup: "Delete group {{name}}",
+      groupSubtitle: "{{count}} skills",
+      groupEmpty: "No skills in this group",
+      groupCreated: "Group created",
+      groupCreateFailed: "Failed to create the group",
+      groupRenamed: "Group renamed",
+      groupRenameFailed: "Failed to rename the group",
+      groupDeleted: "Group deleted",
+      groupDeleteFailed: "Failed to delete the group",
+      groupUpdateFailed: "Failed to update groups",
+      skillMoved: "Skill moved",
+      skillUngrouped: "Skill removed from its group",
+      moveTo: "Move to {{name}}",
+      moveToUngrouped: "Move to ungrouped",
+      toggleSkill: "Toggle {{name}}",
+      toggleGroup: "Toggle group {{name}}",
+      toggleFailed: "Failed to toggle the skill",
+      ungrouped: "Other",
+      empty: {
+        title: "No skills yet",
+        hint: "The host has not registered any skills.",
+      },
+    },
+  },
 } as const;
 
 type WidenStringLeaves<T> = {

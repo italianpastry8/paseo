@@ -2145,4 +2145,215 @@ export const ja: TranslationResources = {
       },
     },
   },
+  hostTools: {
+    menu: {
+      trigger: "ホストツール",
+      title: "ホストツール",
+      items: {
+        quota: "クォータセンター",
+        roles: "ロールとモデル",
+        skills: "スキルマネージャー",
+      },
+    },
+    sections: {
+      quota: {
+        title: "クォータセンター",
+        subtitle: "ホストが出力したプラットフォーム使用量",
+        badge: "クォータ",
+      },
+      roles: {
+        title: "ロールとモデル",
+        subtitle: "ロールが使うモデルを切り替える",
+        badge: "ロール",
+      },
+      skills: {
+        title: "スキルマネージャー",
+        subtitle: "ホストのスキルを有効化・無効化・グループ化",
+        badge: "スキル",
+      },
+    },
+    empty: {
+      title: "ホストツールは利用できません",
+      hint: "このホストは host-tools 機能を公開していません。",
+    },
+    unsupported: {
+      quota: {
+        title: "クォータセンターは利用できません",
+        hint: "ホストをアップデートしてください。",
+      },
+      roles: {
+        title: "ロールとモデルの切り替えは利用できません",
+        hint: "ホストをアップデートしてください。",
+      },
+      skills: {
+        title: "スキルマネージャーは利用できません",
+        hint: "ホストをアップデートしてください。",
+      },
+    },
+    common: {
+      unknownTime: "不明",
+      justNow: "たった今",
+      secondsAgo: "{{count}} 秒前",
+      minutesAgo: "{{count}} 分前",
+      hoursAgo: "{{count}} 時間前",
+      daysAgo: "{{count}} 日前",
+      back: "戻る",
+      cancel: "キャンセル",
+      clearSearch: "検索をクリア",
+    },
+    errors: {
+      file_missing: {
+        title: "クォータのエクスポートファイルが見つかりません",
+        description: "エクスポートを生成するには、ホストの更新コマンドを実行してください。",
+      },
+      file_corrupt: {
+        title: "クォータのエクスポートが破損しています",
+        description: "続行する前にファイルを修復または再生成してください。",
+      },
+      version_mismatch: {
+        title: "サポートされていないクォータエクスポートのバージョンです",
+        description: "ホストのクォータエクスポートプラグインを互換バージョンに更新してください。",
+      },
+      cli_missing: {
+        title: "更新 CLI が見つかりません",
+        description: "手動更新を有効化するには、ホストの更新 CLI をインストールしてください。",
+      },
+      cooldown: {
+        title: "更新はクールダウン中です",
+        description: "数秒待ってから再試行してください。",
+      },
+      in_progress: {
+        title: "更新はすでに実行中です",
+        description: "完了次第、ホストが新しいスナップショットを配信します。",
+      },
+      config_missing: {
+        title: "設定ファイルが見つかりません",
+        description: "ホストは設定ファイルが存在することを想定しています。",
+      },
+      config_corrupt: {
+        title: "設定ファイルが破損しています",
+        description: "ファイルは変更されていません。再試行前に修復してください。",
+      },
+      no_active_preset: {
+        title: "アクティブなプリセットがありません",
+        description: "ロールを切り替える前に、ホストの設定でプリセットを選択してください。",
+      },
+      invalid_model: {
+        title: "無効なモデル ID です",
+        description: "モデル ID は provider/model の形式である必要があります。",
+      },
+      move_conflict: {
+        title: "移動が競合しました",
+        description: "同じ名前のスキルフォルダが移動先にすでに存在します。",
+      },
+      permission_denied: {
+        title: "権限がありません",
+        description: "ホストが変更の適用を拒否しました。",
+      },
+      unknown: {
+        title: "エラーが発生しました",
+        description: "詳細はホストのログを確認してください。",
+      },
+    },
+    quota: {
+      title: "クォータのエクスポート",
+      loading: "クォータを読み込み中...",
+      fetchedAt: "取得: {{time}}",
+      refresh: "更新",
+      refreshing: "更新中...",
+      stale: {
+        title: "データが古くなっています",
+        description: "最後のエクスポートから 5 分以上経過しています。引いて更新してください。",
+      },
+      versionMismatch: {
+        title: "サポートされていないエクスポートバージョンです",
+        description: "ホストのエクスポートプラグインの更新が必要です。",
+      },
+      providerError: "エラー",
+      noEntries: "{{provider}} にはまだエントリがありません",
+      unlimited: "無制限",
+      progressLabel: "{{name}} 残り {{value}}",
+      resetsAt: "{{time}} にリセット",
+      empty: {
+        title: "クォータデータがまだありません",
+        hint: "手動更新を実行してエクスポートを作成してください。",
+      },
+    },
+    roles: {
+      title: "ロールとモデル",
+      loading: "ロールを読み込み中...",
+      presetName: "プリセット: {{name}}",
+      noModel: "未割り当てのモデル",
+      variant: "バリアント: {{value}}",
+      hasVariant: "バリアントあり",
+      rowAccessibility: "ロール {{role}}",
+      empty: {
+        title: "ロールが見つかりません",
+        hint: "ホストでプリセットを有効化すると、そのロールが表示されます。",
+      },
+      writeFailed: "ロールのモデルの更新に失敗しました",
+      writeSuccess: "ロールを更新しました",
+      dismissSuccess: "閉じる",
+      successHint: {
+        title: "{{role}} は {{model}} を使用します",
+        description: "新しいセッションはこれを自動的に適用します。",
+      },
+      modelPicker: {
+        subtitle: "現在: {{current}}",
+        searchPlaceholder: "モデルを検索...",
+        loading: "モデルを読み込み中...",
+        errorTitle: "モデルの読み込みに失敗しました",
+        noMatches: "一致するモデルがありません",
+        degraded: {
+          title: "モデルリストは古くなっています",
+          description:
+            "ホストがモデルカタログを更新できませんでした。リストが不完全な可能性があります。",
+        },
+      },
+      variantPicker: {
+        subtitle: "モデル: {{model}}",
+        confirm: "保存",
+      },
+      variants: {
+        low: "低",
+        medium: "中",
+        high: "高",
+      },
+    },
+    skills: {
+      title: "スキルマネージャー",
+      loading: "スキルを読み込み中...",
+      subtitle: "{{count}} 件のスキル",
+      createGroup: "新規グループ",
+      createGroupAction: "作成",
+      newGroup: "新しいグループ名",
+      newGroupPlaceholder: "例: lark-tools",
+      rename: "名前を変更",
+      renameAction: "保存",
+      renamePlaceholder: "グループ名",
+      renameGroup: "グループ {{name}} の名前を変更",
+      deleteGroup: "グループ {{name}} を削除",
+      groupSubtitle: "{{count}} 件のスキル",
+      groupEmpty: "このグループにはスキルがありません",
+      groupCreated: "グループを作成しました",
+      groupCreateFailed: "グループの作成に失敗しました",
+      groupRenamed: "グループの名前を変更しました",
+      groupRenameFailed: "グループの名前の変更に失敗しました",
+      groupDeleted: "グループを削除しました",
+      groupDeleteFailed: "グループの削除に失敗しました",
+      groupUpdateFailed: "グループの更新に失敗しました",
+      skillMoved: "スキルを移動しました",
+      skillUngrouped: "スキルをグループから除外しました",
+      moveTo: "{{name}} に移動",
+      moveToUngrouped: "未分類へ移動",
+      toggleSkill: "{{name}} を切り替え",
+      toggleGroup: "グループ {{name}} を切り替え",
+      toggleFailed: "スキルの切り替えに失敗しました",
+      ungrouped: "その他",
+      empty: {
+        title: "スキルがまだありません",
+        hint: "ホストはスキルを登録していません。",
+      },
+    },
+  },
 } as const;

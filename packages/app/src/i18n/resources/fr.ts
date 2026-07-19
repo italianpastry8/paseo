@@ -2178,4 +2178,216 @@ export const fr: TranslationResources = {
       },
     },
   },
+  hostTools: {
+    menu: {
+      trigger: "Outils de l'hôte",
+      title: "Outils de l'hôte",
+      items: {
+        quota: "Centre de quotas",
+        roles: "Rôles et modèles",
+        skills: "Gestionnaire de skills",
+      },
+    },
+    sections: {
+      quota: {
+        title: "Centre de quotas",
+        subtitle: "Utilisation des plateformes exportée par l'hôte",
+        badge: "Quota",
+      },
+      roles: {
+        title: "Rôles et modèles",
+        subtitle: "Changez le modèle utilisé par le rôle",
+        badge: "Rôles",
+      },
+      skills: {
+        title: "Gestionnaire de skills",
+        subtitle: "Activez, désactivez et regroupez les skills de l'hôte",
+        badge: "Skills",
+      },
+    },
+    empty: {
+      title: "Outils de l'hôte indisponibles",
+      hint: "Cet hôte n'annonce aucune capacité host-tools.",
+    },
+    unsupported: {
+      quota: {
+        title: "Le centre de quotas est indisponible",
+        hint: "Mettez à jour l'hôte pour l'utiliser.",
+      },
+      roles: {
+        title: "Le changement de rôle et de modèle est indisponible",
+        hint: "Mettez à jour l'hôte pour l'utiliser.",
+      },
+      skills: {
+        title: "Le gestionnaire de skills est indisponible",
+        hint: "Mettez à jour l'hôte pour l'utiliser.",
+      },
+    },
+    common: {
+      unknownTime: "inconnu",
+      justNow: "à l'instant",
+      secondsAgo: "il y a {{count}} secondes",
+      minutesAgo: "il y a {{count}} minutes",
+      hoursAgo: "il y a {{count}} heures",
+      daysAgo: "il y a {{count}} jours",
+      back: "Retour",
+      cancel: "Annuler",
+      clearSearch: "Effacer la recherche",
+    },
+    errors: {
+      file_missing: {
+        title: "Fichier d'export des quotas manquant",
+        description: "Exécutez la commande d'actualisation de l'hôte pour générer l'export.",
+      },
+      file_corrupt: {
+        title: "Export des quotas corrompu",
+        description: "Réparez ou régénérez le fichier avant de continuer.",
+      },
+      version_mismatch: {
+        title: "Version d'export des quotas non prise en charge",
+        description: "Mettez à jour le plugin d'export vers une version compatible.",
+      },
+      cli_missing: {
+        title: "CLI d'actualisation manquante",
+        description:
+          "Installez la CLI d'actualisation de l'hôte pour activer l'actualisation manuelle.",
+      },
+      cooldown: {
+        title: "Actualisation en cours de refroidissement",
+        description: "Patientez quelques secondes avant de réessayer.",
+      },
+      in_progress: {
+        title: "Une actualisation est déjà en cours",
+        description: "L'hôte livrera un nouvel instantané dès qu'elle sera terminée.",
+      },
+      config_missing: {
+        title: "Fichier de configuration manquant",
+        description: "L'hôte attend la présence du fichier de configuration.",
+      },
+      config_corrupt: {
+        title: "Fichier de configuration corrompu",
+        description: "Le fichier n'a pas été modifié. Réparez-le avant de réessayer.",
+      },
+      no_active_preset: {
+        title: "Aucun preset actif",
+        description:
+          "Sélectionnez un preset dans la configuration de l'hôte avant de changer de rôle.",
+      },
+      invalid_model: {
+        title: "ID de modèle invalide",
+        description: "L'ID de modèle doit être de la forme provider/model.",
+      },
+      move_conflict: {
+        title: "Conflit de déplacement",
+        description: "Un dossier de skill du même nom existe déjà à la destination.",
+      },
+      permission_denied: {
+        title: "Autorisation refusée",
+        description: "L'hôte a refusé d'appliquer la modification.",
+      },
+      unknown: {
+        title: "Une erreur s'est produite",
+        description: "Consultez les journaux de l'hôte pour le détail de l'erreur.",
+      },
+    },
+    quota: {
+      title: "Export des quotas",
+      loading: "Chargement des quotas...",
+      fetchedAt: "Récupéré {{time}}",
+      refresh: "Actualiser",
+      refreshing: "Actualisation...",
+      stale: {
+        title: "Données obsolètes",
+        description: "Le dernier export date de plus de 5 minutes. Tirez pour actualiser.",
+      },
+      versionMismatch: {
+        title: "Version d'export non prise en charge",
+        description: "Le plugin d'export de l'hôte doit être mis à jour.",
+      },
+      providerError: "Erreur",
+      noEntries: "{{provider}} n'a pas encore d'entrées",
+      unlimited: "Illimité",
+      progressLabel: "Restant pour {{name}} {{value}}",
+      resetsAt: "Réinitialisation à {{time}}",
+      empty: {
+        title: "Aucune donnée de quota pour le moment",
+        hint: "Exécutez une actualisation manuelle pour remplir l'export.",
+      },
+    },
+    roles: {
+      title: "Rôles et modèles",
+      loading: "Chargement des rôles...",
+      presetName: "Preset : {{name}}",
+      noModel: "Aucun modèle attribué",
+      variant: "Variante : {{value}}",
+      hasVariant: "Variante",
+      rowAccessibility: "Rôle {{role}}",
+      empty: {
+        title: "Aucun rôle trouvé",
+        hint: "Activez un preset sur l'hôte pour voir ses rôles.",
+      },
+      writeFailed: "Échec de la mise à jour du modèle du rôle",
+      writeSuccess: "Rôle mis à jour",
+      dismissSuccess: "Ignorer",
+      successHint: {
+        title: "{{role}} utilise désormais {{model}}",
+        description: "Les nouvelles sessions appliqueront ceci automatiquement.",
+      },
+      modelPicker: {
+        subtitle: "Actuel : {{current}}",
+        searchPlaceholder: "Rechercher des modèles...",
+        loading: "Chargement des modèles...",
+        errorTitle: "Échec du chargement des modèles",
+        noMatches: "Aucun modèle ne correspond",
+        degraded: {
+          title: "Liste des modèles obsolète",
+          description: "L'hôte n'a pas pu actualiser le catalogue. La liste peut être incomplète.",
+        },
+      },
+      variantPicker: {
+        subtitle: "Modèle : {{model}}",
+        confirm: "Enregistrer",
+      },
+      variants: {
+        low: "Faible",
+        medium: "Moyen",
+        high: "Élevé",
+      },
+    },
+    skills: {
+      title: "Gestionnaire de skills",
+      loading: "Chargement des skills...",
+      subtitle: "{{count}} skills",
+      createGroup: "Nouveau groupe",
+      createGroupAction: "Créer",
+      newGroup: "Nom du nouveau groupe",
+      newGroupPlaceholder: "ex. lark-tools",
+      rename: "Renommer",
+      renameAction: "Enregistrer",
+      renamePlaceholder: "Nom du groupe",
+      renameGroup: "Renommer le groupe {{name}}",
+      deleteGroup: "Supprimer le groupe {{name}}",
+      groupSubtitle: "{{count}} skills",
+      groupEmpty: "Aucun skill dans ce groupe",
+      groupCreated: "Groupe créé",
+      groupCreateFailed: "Échec de la création du groupe",
+      groupRenamed: "Groupe renommé",
+      groupRenameFailed: "Échec du renommage du groupe",
+      groupDeleted: "Groupe supprimé",
+      groupDeleteFailed: "Échec de la suppression du groupe",
+      groupUpdateFailed: "Échec de la mise à jour des groupes",
+      skillMoved: "Skill déplacé",
+      skillUngrouped: "Skill retiré de son groupe",
+      moveTo: "Déplacer vers {{name}}",
+      moveToUngrouped: "Déplacer vers non groupé",
+      toggleSkill: "Basculer {{name}}",
+      toggleGroup: "Basculer le groupe {{name}}",
+      toggleFailed: "Échec du basculement du skill",
+      ungrouped: "Autres",
+      empty: {
+        title: "Aucun skill pour le moment",
+        hint: "L'hôte n'a enregistré aucun skill.",
+      },
+    },
+  },
 };
