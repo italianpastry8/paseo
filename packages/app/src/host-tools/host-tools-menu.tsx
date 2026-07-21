@@ -30,6 +30,7 @@ import {
   buildHostToolsQuotaRoute,
   buildHostToolsRolesRoute,
   buildHostToolsSkillsRoute,
+  buildHostToolsMcpRoute,
 } from "./routes";
 import { useHostToolsFeatures } from "./use-host-tools-features";
 import type { Theme } from "@/styles/theme";
@@ -142,8 +143,28 @@ export function HostToolsMenu({ serverId, isCompact }: HostToolsMenuProps): Reac
         </DropdownMenuItem>,
       );
     }
+    if (features.mcp) {
+      out.push(
+        <DropdownMenuItem
+          key="mcp"
+          testID="host-tools-menu-mcp"
+          onSelect={handleSelect(buildHostToolsMcpRoute(serverId))}
+        >
+          {t("hostTools.menu.items.mcp")}
+        </DropdownMenuItem>,
+      );
+    }
     return out;
-  }, [features.hasAny, features.quota, features.roles, features.skills, handleSelect, serverId, t]);
+  }, [
+    features.hasAny,
+    features.quota,
+    features.roles,
+    features.skills,
+    features.mcp,
+    handleSelect,
+    serverId,
+    t,
+  ]);
 
   if (!features.hasAny) {
     return null;

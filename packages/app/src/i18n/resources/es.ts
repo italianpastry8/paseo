@@ -2181,6 +2181,7 @@ export const es: TranslationResources = {
         quota: "Centro de cuotas",
         roles: "Roles y modelos",
         skills: "Gestor de skills",
+        mcp: "Gestor de MCP",
       },
     },
     sections: {
@@ -2199,6 +2200,11 @@ export const es: TranslationResources = {
         subtitle: "Activa, desactiva y agrupa los skills del host",
         badge: "Skills",
       },
+      mcp: {
+        title: "Gestor de MCP",
+        subtitle: "Activa y desactiva servidores MCP",
+        badge: "MCP",
+      },
     },
     empty: {
       title: "Las herramientas del host no están disponibles",
@@ -2215,6 +2221,10 @@ export const es: TranslationResources = {
       },
       skills: {
         title: "El gestor de skills no está disponible",
+        hint: "Actualiza el host para usar esto.",
+      },
+      mcp: {
+        title: "El gestor de MCP no está disponible",
         hint: "Actualiza el host para usar esto.",
       },
     },
@@ -2363,7 +2373,8 @@ export const es: TranslationResources = {
       renamePlaceholder: "Nombre del grupo",
       renameGroup: "Renombrar grupo {{name}}",
       deleteGroup: "Eliminar grupo {{name}}",
-      groupSubtitle: "{{count}} skills",
+      groupSubtitle: "{{enabled}}/{{total}} activados",
+      groupSubtitleEmpty: "0 skills",
       groupEmpty: "No hay skills en este grupo",
       groupCreated: "Grupo creado",
       groupCreateFailed: "Error al crear el grupo",
@@ -2383,6 +2394,19 @@ export const es: TranslationResources = {
       empty: {
         title: "Aún no hay skills",
         hint: "El host no ha registrado ningún skill.",
+      },
+    },
+    mcp: {
+      title: "Gestor de MCP",
+      loading: "Cargando servidores MCP...",
+      subtitle: "{{count}} servidores",
+      newSessionHint: "Los cambios surten efecto en nuevas sesiones",
+      toggleServer: "Alternar {{name}}",
+      toggleFailed: "Error al alternar el servidor MCP",
+      serverMeta: "{{type}} · {{command}}",
+      empty: {
+        title: "No hay servidores MCP",
+        hint: "Añade servidores en opencode.jsonc",
       },
     },
   },

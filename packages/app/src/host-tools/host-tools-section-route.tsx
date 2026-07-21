@@ -22,7 +22,7 @@ import type { HostToolsCapabilities } from "@/host-tools/types";
 
 export interface HostToolsSectionRouteProps {
   /** Section key — the route file provides this. */
-  capability: "quota" | "roles" | "skills";
+  capability: "quota" | "roles" | "skills" | "mcp";
   /** Render prop for the actual screen, called with the resolved serverId. */
   children: (input: { serverId: string }) => ReactNode;
 }
@@ -38,7 +38,7 @@ export function HostToolsSectionRoute({ capability, children }: HostToolsSection
 }
 
 interface HostToolsSectionRouteContentProps {
-  capability: "quota" | "roles" | "skills";
+  capability: "quota" | "roles" | "skills" | "mcp";
   children: (input: { serverId: string }) => ReactNode;
 }
 
@@ -75,7 +75,10 @@ function HostToolsSectionRouteContent({ capability, children }: HostToolsSection
   return <>{children({ serverId })}</>;
 }
 
-function isCapabilityOn(features: HostToolsCapabilities, capability: "quota" | "roles" | "skills") {
+function isCapabilityOn(
+  features: HostToolsCapabilities,
+  capability: "quota" | "roles" | "skills" | "mcp",
+) {
   return features[capability] === true;
 }
 

@@ -2128,6 +2128,7 @@ export const ar: TranslationResources = {
         quota: "مركز الحصص",
         roles: "الأدوار والنماذج",
         skills: "مدير المهارات",
+        mcp: "مدير MCP",
       },
     },
     sections: {
@@ -2146,6 +2147,11 @@ export const ar: TranslationResources = {
         subtitle: "فعّل وعطّل وجمّع مهارات المضيف",
         badge: "مهارات",
       },
+      mcp: {
+        title: "مدير MCP",
+        subtitle: "فعّل وعطّل خوادم MCP",
+        badge: "MCP",
+      },
     },
     empty: {
       title: "أدوات المضيف غير متوفرة",
@@ -2162,6 +2168,10 @@ export const ar: TranslationResources = {
       },
       skills: {
         title: "مدير المهارات غير متوفر",
+        hint: "حدّث المضيف لاستخدام هذا.",
+      },
+      mcp: {
+        title: "مدير MCP غير متوفر",
         hint: "حدّث المضيف لاستخدام هذا.",
       },
     },
@@ -2307,7 +2317,8 @@ export const ar: TranslationResources = {
       renamePlaceholder: "اسم المجموعة",
       renameGroup: "إعادة تسمية المجموعة {{name}}",
       deleteGroup: "حذف المجموعة {{name}}",
-      groupSubtitle: "{{count}} مهارات",
+      groupSubtitle: "{{enabled}}/{{total}} مفعلة",
+      groupSubtitleEmpty: "0 مهارات",
       groupEmpty: "لا توجد مهارات في هذه المجموعة",
       groupCreated: "تم إنشاء المجموعة",
       groupCreateFailed: "فشل إنشاء المجموعة",
@@ -2327,6 +2338,19 @@ export const ar: TranslationResources = {
       empty: {
         title: "لا توجد مهارات بعد",
         hint: "لم يسجّل المضيف أي مهارات.",
+      },
+    },
+    mcp: {
+      title: "مدير MCP",
+      loading: "جارٍ تحميل خوادم MCP...",
+      subtitle: "{{count}} خوادم",
+      newSessionHint: "التفعيل يسري في الجلسات الجديدة",
+      toggleServer: "تبديل {{name}}",
+      toggleFailed: "فشل تبديل خادم MCP",
+      serverMeta: "{{type}} · {{command}}",
+      empty: {
+        title: "لا توجد خوادم MCP",
+        hint: "أضف خوادم في opencode.jsonc",
       },
     },
   },

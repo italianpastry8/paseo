@@ -2426,6 +2426,24 @@ export const HostSkillsGroupsUpdateRequestMessageSchema = z.object({
   requestId: z.string(),
 });
 
+export const HostMcpListRequestMessageSchema = z.object({
+  type: z.literal("host.mcp.list.request"),
+  requestId: z.string(),
+});
+
+export const HostMcpSubscribeRequestMessageSchema = z.object({
+  type: z.literal("host.mcp.subscribe.request"),
+  subscribe: z.boolean(),
+  requestId: z.string(),
+});
+
+export const HostMcpToggleRequestMessageSchema = z.object({
+  type: z.literal("host.mcp.toggle.request"),
+  name: z.string(),
+  enable: z.boolean(),
+  requestId: z.string(),
+});
+
 export const SessionInboundMessageSchema = z.discriminatedUnion("type", [
   HubExecutionAgentCreateRequestSchema,
   BrowserAutomationExecuteResponseSchema,
@@ -2587,6 +2605,9 @@ export const SessionInboundMessageSchema = z.discriminatedUnion("type", [
   HostSkillsSubscribeRequestMessageSchema,
   HostSkillsToggleRequestMessageSchema,
   HostSkillsGroupsUpdateRequestMessageSchema,
+  HostMcpListRequestMessageSchema,
+  HostMcpSubscribeRequestMessageSchema,
+  HostMcpToggleRequestMessageSchema,
 ]);
 
 export type SessionInboundMessage = z.infer<typeof SessionInboundMessageSchema>;
@@ -2826,6 +2847,7 @@ export const ServerInfoStatusPayloadSchema = z
             quota: z.boolean().optional(),
             roles: z.boolean().optional(),
             skills: z.boolean().optional(),
+            mcp: z.boolean().optional(),
           })
           .optional(),
       })
@@ -5251,6 +5273,46 @@ export const HostSkillsChangedMessageSchema = z.object({
   payload: HostSkillsSnapshotSchema,
 });
 
+export const HostMcpServerSchema = z.object({
+  name: z.string(),
+  type: z.string().optional(),
+  command: z.array(z.string()).optional(),
+  enabled: z.boolean(),
+  env: z.record(z.string(), z.string()).optional(),
+});
+
+export const HostMcpSnapshotSchema = z.object({
+  servers: z.array(HostMcpServerSchema),
+  error: HostToolsErrorSchema.optional(),
+});
+
+export const HostMcpListResponseMessageSchema = z.object({
+  type: z.literal("host.mcp.list.response"),
+  payload: HostMcpSnapshotSchema.extend({ requestId: z.string() }),
+});
+
+export const HostMcpSubscribeResponseMessageSchema = z.object({
+  type: z.literal("host.mcp.subscribe.response"),
+  payload: z.object({
+    requestId: z.string(),
+    ok: z.boolean(),
+  }),
+});
+
+export const HostMcpToggleResponseMessageSchema = z.object({
+  type: z.literal("host.mcp.toggle.response"),
+  payload: z.object({
+    requestId: z.string(),
+    ok: z.boolean(),
+    error: HostToolsErrorSchema.optional(),
+  }),
+});
+
+export const HostMcpChangedMessageSchema = z.object({
+  type: z.literal("host.mcp.changed"),
+  payload: HostMcpSnapshotSchema,
+});
+
 export const SessionOutboundMessageSchema = z.discriminatedUnion("type", [
   HubExecutionAgentCreateResponseSchema,
   HubExecutionAgentUpdateSchema,
@@ -5427,6 +5489,10 @@ export const SessionOutboundMessageSchema = z.discriminatedUnion("type", [
   HostSkillsToggleResponseMessageSchema,
   HostSkillsGroupsUpdateResponseMessageSchema,
   HostSkillsChangedMessageSchema,
+  HostMcpListResponseMessageSchema,
+  HostMcpSubscribeResponseMessageSchema,
+  HostMcpToggleResponseMessageSchema,
+  HostMcpChangedMessageSchema,
 ]);
 
 export type SessionOutboundMessage = z.infer<typeof SessionOutboundMessageSchema>;
@@ -5442,6 +5508,8 @@ export type HostSkillInstance = z.infer<typeof HostSkillInstanceSchema>;
 export type HostSkill = z.infer<typeof HostSkillSchema>;
 export type HostSkillGroup = z.infer<typeof HostSkillGroupSchema>;
 export type HostSkillsSnapshot = z.infer<typeof HostSkillsSnapshotSchema>;
+export type HostMcpServer = z.infer<typeof HostMcpServerSchema>;
+export type HostMcpSnapshot = z.infer<typeof HostMcpSnapshotSchema>;
 
 // Type exports for individual message types
 export type ActivityLogMessage = z.infer<typeof ActivityLogMessageSchema>;

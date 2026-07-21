@@ -464,7 +464,12 @@ function SkillGroupCard({
               <Text style={styles.groupTitle}>{group.name}</Text>
             )}
             <Text style={styles.groupSubtitle}>
-              {t("hostTools.skills.groupSubtitle", { count: skills.length })}
+              {skills.length === 0
+                ? t("hostTools.skills.groupSubtitleEmpty")
+                : t("hostTools.skills.groupSubtitle", {
+                    enabled: skills.filter((s) => s.enabled).length,
+                    total: skills.length,
+                  })}
             </Text>
           </View>
         </Pressable>

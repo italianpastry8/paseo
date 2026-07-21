@@ -1,5 +1,6 @@
 import type pino from "pino";
 import { defaultHostToolsPaths, type HostToolsPaths } from "./paths.js";
+import { HostMcpService } from "./mcp-service.js";
 import { HostQuotaService } from "./quota-service.js";
 import { HostRolesService } from "./roles-service.js";
 import { defaultSkillRoots, type SkillRootSpec } from "./skill-scanner.js";
@@ -16,6 +17,7 @@ export interface HostToolsFeatures {
   quota: boolean;
   roles: boolean;
   skills: boolean;
+  mcp: boolean;
 }
 
 export interface HostToolsRegistryOptions {
@@ -32,6 +34,7 @@ export class HostToolsRegistry {
   private quotaService: HostQuotaService | null = null;
   private rolesService: HostRolesService | null = null;
   private skillsService: HostSkillsService | null = null;
+  private mcpService: HostMcpService | null = null;
 
   constructor(options: HostToolsRegistryOptions) {
     this.logger = options.logger;
@@ -73,11 +76,22 @@ export class HostToolsRegistry {
     return this.skillsService;
   }
 
+  mcp(): HostMcpService {
+    if (!this.mcpService) {
+      this.mcpService = new HostMcpService({
+        configPath: this.paths.opencodeConfigPath,
+        logger: this.logger.child({ tool: "mcp" }),
+      });
+    }
+    return this.mcpService;
+  }
+
   features(): HostToolsFeatures {
     return {
       quota: this.quota().isAvailable(),
       roles: this.roles().isAvailable(),
       skills: this.skills().isAvailable(),
+      mcp: this.mcp().isAvailable(),
     };
   }
 }

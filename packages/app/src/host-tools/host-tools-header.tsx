@@ -17,7 +17,7 @@ import { useHostToolsFeatures } from "./use-host-tools-features";
 
 interface HostToolsHeaderProps {
   serverId: string;
-  section: "quota" | "roles" | "skills";
+  section: "quota" | "roles" | "skills" | "mcp";
   trailing?: ReactNode;
 }
 

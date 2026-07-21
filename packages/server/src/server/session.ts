@@ -1678,6 +1678,12 @@ export class Session {
         return this.handleHostSkillsToggle(msg);
       case "host.skills.groups.update.request":
         return this.handleHostSkillsGroupsUpdate(msg);
+      case "host.mcp.list.request":
+        return this.handleHostMcpList(msg.requestId);
+      case "host.mcp.subscribe.request":
+        return this.handleHostToolsSubscribe("mcp", msg.subscribe, msg.requestId);
+      case "host.mcp.toggle.request":
+        return this.handleHostMcpToggle(msg);
       default:
         return undefined;
     }
@@ -1780,8 +1786,31 @@ export class Session {
     });
   }
 
+  private async handleHostMcpList(requestId: string): Promise<void> {
+    const snapshot = this.hostTools
+      ? await this.hostTools.mcp().getSnapshot()
+      : { servers: [], error: { code: "unavailable", message: "host tools 未启用" } };
+    this.emit({ type: "host.mcp.list.response", payload: { ...snapshot, requestId } });
+  }
+
+  private async handleHostMcpToggle(
+    msg: Extract<SessionInboundMessage, { type: "host.mcp.toggle.request" }>,
+  ): Promise<void> {
+    const result = this.hostTools
+      ? await this.hostTools.mcp().toggle(msg.name, msg.enable)
+      : { ok: false, error: { code: "unavailable", message: "host tools 未启用" } };
+    this.emit({
+      type: "host.mcp.toggle.response",
+      payload: {
+        requestId: msg.requestId,
+        ok: result.ok,
+        ...(result.error ? { error: result.error } : {}),
+      },
+    });
+  }
+
   private async handleHostToolsSubscribe(
-    namespace: "quota" | "roles" | "skills",
+    namespace: "quota" | "roles" | "skills" | "mcp",
     subscribe: boolean,
     requestId: string,
   ): Promise<void> {
@@ -1812,10 +1841,16 @@ export class Session {
           payload: { requestId, ok: this.hostTools !== null },
         });
         break;
+      case "mcp":
+        this.emit({
+          type: "host.mcp.subscribe.response",
+          payload: { requestId, ok: this.hostTools !== null },
+        });
+        break;
     }
   }
 
-  private subscribeHostToolsNamespace(namespace: "quota" | "roles" | "skills"): () => void {
+  private subscribeHostToolsNamespace(namespace: "quota" | "roles" | "skills" | "mcp"): () => void {
     if (!this.hostTools) {
       return () => {};
     }
@@ -1840,6 +1875,14 @@ export class Session {
         const service = this.hostTools.skills();
         const unsubscribe = service.onSnapshotChanged((snapshot) => {
           this.emit({ type: "host.skills.changed", payload: snapshot });
+        });
+        service.start();
+        return unsubscribe;
+      }
+      case "mcp": {
+        const service = this.hostTools.mcp();
+        const unsubscribe = service.subscribe((snapshot) => {
+          this.emit({ type: "host.mcp.changed", payload: snapshot });
         });
         service.start();
         return unsubscribe;

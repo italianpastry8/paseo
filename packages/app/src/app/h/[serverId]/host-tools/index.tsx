@@ -17,6 +17,7 @@ import {
   buildHostToolsQuotaRoute,
   buildHostToolsRolesRoute,
   buildHostToolsSkillsRoute,
+  buildHostToolsMcpRoute,
 } from "@/host-tools/routes";
 import { useHostToolsFeatures } from "@/host-tools/use-host-tools-features";
 
@@ -44,8 +45,11 @@ function HostToolsIndexContent() {
     if (features.skills) {
       return buildHostToolsSkillsRoute(serverId);
     }
+    if (features.mcp) {
+      return buildHostToolsMcpRoute(serverId);
+    }
     return null;
-  }, [features.quota, features.roles, features.skills, serverId]);
+  }, [features.quota, features.roles, features.skills, features.mcp, serverId]);
 
   if (fallback) {
     return <Redirect href={fallback} />;

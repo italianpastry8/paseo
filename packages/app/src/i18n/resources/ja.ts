@@ -2153,6 +2153,7 @@ export const ja: TranslationResources = {
         quota: "クォータセンター",
         roles: "ロールとモデル",
         skills: "スキルマネージャー",
+        mcp: "MCP マネージャー",
       },
     },
     sections: {
@@ -2171,6 +2172,11 @@ export const ja: TranslationResources = {
         subtitle: "ホストのスキルを有効化・無効化・グループ化",
         badge: "スキル",
       },
+      mcp: {
+        title: "MCP マネージャー",
+        subtitle: "MCP サーバーを有効化・無効化",
+        badge: "MCP",
+      },
     },
     empty: {
       title: "ホストツールは利用できません",
@@ -2187,6 +2193,10 @@ export const ja: TranslationResources = {
       },
       skills: {
         title: "スキルマネージャーは利用できません",
+        hint: "ホストをアップデートしてください。",
+      },
+      mcp: {
+        title: "MCP マネージャーは利用できません",
         hint: "ホストをアップデートしてください。",
       },
     },
@@ -2333,7 +2343,8 @@ export const ja: TranslationResources = {
       renamePlaceholder: "グループ名",
       renameGroup: "グループ {{name}} の名前を変更",
       deleteGroup: "グループ {{name}} を削除",
-      groupSubtitle: "{{count}} 件のスキル",
+      groupSubtitle: "{{enabled}}/{{total}} 有効",
+      groupSubtitleEmpty: "0 件のスキル",
       groupEmpty: "このグループにはスキルがありません",
       groupCreated: "グループを作成しました",
       groupCreateFailed: "グループの作成に失敗しました",
@@ -2353,6 +2364,19 @@ export const ja: TranslationResources = {
       empty: {
         title: "スキルがまだありません",
         hint: "ホストはスキルを登録していません。",
+      },
+    },
+    mcp: {
+      title: "MCP マネージャー",
+      loading: "MCP サーバーを読み込み中...",
+      subtitle: "{{count}} サーバー",
+      newSessionHint: "切り替えは新しいセッションで有効になります",
+      toggleServer: "{{name}} を切り替え",
+      toggleFailed: "MCP サーバーの切り替えに失敗しました",
+      serverMeta: "{{type}} · {{command}}",
+      empty: {
+        title: "MCP サーバーがありません",
+        hint: "opencode.jsonc でサーバーを追加してください",
       },
     },
   },

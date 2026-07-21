@@ -22,6 +22,8 @@ export type {
   HostSkillInstance,
   HostSkillsSnapshot,
   HostToolsError,
+  HostMcpServer,
+  HostMcpSnapshot,
 } from "@getpaseo/protocol/messages";
 
 export type { HostToolsActionResult, HostRolesListModelsResult };
@@ -34,12 +36,13 @@ export type HostToolsFeaturesField = NonNullable<ServerInfoFeatures["hostTools"]
  * `serverInfo.features.hostTools` so the detection site can do a single
  * truthy check per capability.
  */
-export type HostToolsCapability = "quota" | "roles" | "skills";
+export type HostToolsCapability = "quota" | "roles" | "skills" | "mcp";
 
 export interface HostToolsCapabilities {
   quota: boolean;
   roles: boolean;
   skills: boolean;
+  mcp: boolean;
   hasAny: boolean;
 }
 
@@ -47,6 +50,7 @@ export const HOST_TOOLS_DEFAULT_CAPABILITIES: HostToolsCapabilities = {
   quota: false,
   roles: false,
   skills: false,
+  mcp: false,
   hasAny: false,
 };
 
@@ -56,11 +60,13 @@ export function resolveHostToolsCapabilities(
   const quota = field?.quota === true;
   const roles = field?.roles === true;
   const skills = field?.skills === true;
+  const mcp = field?.mcp === true;
   return {
     quota,
     roles,
     skills,
-    hasAny: quota || roles || skills,
+    mcp,
+    hasAny: quota || roles || skills || mcp,
   };
 }
 

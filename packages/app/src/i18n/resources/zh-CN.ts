@@ -2104,6 +2104,7 @@ export const zhCN: TranslationResources = {
         quota: "额度中心",
         roles: "角色模型",
         skills: "Skill 管理",
+        mcp: "MCP 管理",
       },
     },
     sections: {
@@ -2122,6 +2123,11 @@ export const zhCN: TranslationResources = {
         subtitle: "启停 host 的 skills 并为其分组",
         badge: "Skills",
       },
+      mcp: {
+        title: "MCP 管理",
+        subtitle: "启停本机 MCP server",
+        badge: "MCP",
+      },
     },
     empty: {
       title: "暂无可用的主机工具",
@@ -2139,6 +2145,10 @@ export const zhCN: TranslationResources = {
       skills: {
         title: "Skill 管理不可用",
         hint: "升级 host 后即可使用。",
+      },
+      mcp: {
+        title: "MCP 管理不可用",
+        hint: "升级 host 以使用此功能。",
       },
     },
     common: {
@@ -2283,7 +2293,8 @@ export const zhCN: TranslationResources = {
       renamePlaceholder: "分组名称",
       renameGroup: "重命名分组 {{name}}",
       deleteGroup: "删除分组 {{name}}",
-      groupSubtitle: "共 {{count}} 个 skill",
+      groupSubtitle: "{{enabled}}/{{total}} 已启用",
+      groupSubtitleEmpty: "0 个 skill",
       groupEmpty: "该分组下暂无 skill",
       groupCreated: "分组已创建",
       groupCreateFailed: "创建分组失败",
@@ -2303,6 +2314,19 @@ export const zhCN: TranslationResources = {
       empty: {
         title: "暂无 skill",
         hint: "host 尚未注册任何 skill。",
+      },
+    },
+    mcp: {
+      title: "MCP 管理",
+      loading: "正在加载 MCP server...",
+      subtitle: "共 {{count}} 个 server",
+      newSessionHint: "开关在新会话生效",
+      toggleServer: "切换 {{name}}",
+      toggleFailed: "切换 MCP server 失败",
+      serverMeta: "{{type}} · {{command}}",
+      empty: {
+        title: "暂无 MCP server",
+        hint: "在 opencode.jsonc 中添加 server",
       },
     },
   },

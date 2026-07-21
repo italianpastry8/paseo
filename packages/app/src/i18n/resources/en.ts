@@ -2142,6 +2142,7 @@ export const en = {
         quota: "Quota center",
         roles: "Roles and models",
         skills: "Skill manager",
+        mcp: "MCP manager",
       },
     },
     sections: {
@@ -2160,6 +2161,11 @@ export const en = {
         subtitle: "Enable, disable, and group the host's skills",
         badge: "Skills",
       },
+      mcp: {
+        title: "MCP manager",
+        subtitle: "Enable and disable MCP servers",
+        badge: "MCP",
+      },
     },
     empty: {
       title: "Host tools are unavailable",
@@ -2176,6 +2182,10 @@ export const en = {
       },
       skills: {
         title: "Skill manager is unavailable",
+        hint: "Update the host to use this.",
+      },
+      mcp: {
+        title: "MCP manager is unavailable",
         hint: "Update the host to use this.",
       },
     },
@@ -2321,7 +2331,8 @@ export const en = {
       renamePlaceholder: "Group name",
       renameGroup: "Rename group {{name}}",
       deleteGroup: "Delete group {{name}}",
-      groupSubtitle: "{{count}} skills",
+      groupSubtitle: "{{enabled}}/{{total}} enabled",
+      groupSubtitleEmpty: "0 skills",
       groupEmpty: "No skills in this group",
       groupCreated: "Group created",
       groupCreateFailed: "Failed to create the group",
@@ -2341,6 +2352,19 @@ export const en = {
       empty: {
         title: "No skills yet",
         hint: "The host has not registered any skills.",
+      },
+    },
+    mcp: {
+      title: "MCP manager",
+      loading: "Loading MCP servers...",
+      subtitle: "{{count}} servers",
+      newSessionHint: "Toggles take effect in new sessions",
+      toggleServer: "Toggle {{name}}",
+      toggleFailed: "Failed to toggle the MCP server",
+      serverMeta: "{{type}} · {{command}}",
+      empty: {
+        title: "No MCP servers",
+        hint: "Add servers in opencode.jsonc",
       },
     },
   },

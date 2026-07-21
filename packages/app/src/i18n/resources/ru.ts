@@ -2173,6 +2173,7 @@ export const ru: TranslationResources = {
         quota: "Центр квот",
         roles: "Роли и модели",
         skills: "Менеджер навыков",
+        mcp: "Менеджер MCP",
       },
     },
     sections: {
@@ -2191,6 +2192,11 @@ export const ru: TranslationResources = {
         subtitle: "Включайте, отключайте и группируйте навыки хоста",
         badge: "Навыки",
       },
+      mcp: {
+        title: "Менеджер MCP",
+        subtitle: "Включайте и отключайте серверы MCP",
+        badge: "MCP",
+      },
     },
     empty: {
       title: "Инструменты хоста недоступны",
@@ -2207,6 +2213,10 @@ export const ru: TranslationResources = {
       },
       skills: {
         title: "Менеджер навыков недоступен",
+        hint: "Обновите хост, чтобы использовать это.",
+      },
+      mcp: {
+        title: "Менеджер MCP недоступен",
         hint: "Обновите хост, чтобы использовать это.",
       },
     },
@@ -2352,7 +2362,8 @@ export const ru: TranslationResources = {
       renamePlaceholder: "Название группы",
       renameGroup: "Переименовать группу {{name}}",
       deleteGroup: "Удалить группу {{name}}",
-      groupSubtitle: "{{count}} навыков",
+      groupSubtitle: "{{enabled}}/{{total}} включено",
+      groupSubtitleEmpty: "0 навыков",
       groupEmpty: "В этой группе пока нет навыков",
       groupCreated: "Группа создана",
       groupCreateFailed: "Не удалось создать группу",
@@ -2372,6 +2383,19 @@ export const ru: TranslationResources = {
       empty: {
         title: "Навыков пока нет",
         hint: "Хост не зарегистрировал ни одного навыка.",
+      },
+    },
+    mcp: {
+      title: "Менеджер MCP",
+      loading: "Загрузка серверов MCP...",
+      subtitle: "{{count}} серверов",
+      newSessionHint: "Переключения вступают в силу в новых сессиях",
+      toggleServer: "Переключить {{name}}",
+      toggleFailed: "Не удалось переключить сервер MCP",
+      serverMeta: "{{type}} · {{command}}",
+      empty: {
+        title: "Нет серверов MCP",
+        hint: "Добавьте серверы в opencode.jsonc",
       },
     },
   },

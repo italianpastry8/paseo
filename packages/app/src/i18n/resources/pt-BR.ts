@@ -2166,6 +2166,7 @@ export const ptBR: TranslationResources = {
         quota: "Central de cotas",
         roles: "Funções e modelos",
         skills: "Gerenciador de skills",
+        mcp: "Gerenciador MCP",
       },
     },
     sections: {
@@ -2184,6 +2185,11 @@ export const ptBR: TranslationResources = {
         subtitle: "Ative, desative e agrupe os skills do host",
         badge: "Skills",
       },
+      mcp: {
+        title: "Gerenciador MCP",
+        subtitle: "Ative e desative servidores MCP",
+        badge: "MCP",
+      },
     },
     empty: {
       title: "Ferramentas do host indisponíveis",
@@ -2200,6 +2206,10 @@ export const ptBR: TranslationResources = {
       },
       skills: {
         title: "Gerenciador de skills indisponível",
+        hint: "Atualize o host para usar isso.",
+      },
+      mcp: {
+        title: "Gerenciador MCP indisponível",
         hint: "Atualize o host para usar isso.",
       },
     },
@@ -2345,7 +2355,8 @@ export const ptBR: TranslationResources = {
       renamePlaceholder: "Nome do grupo",
       renameGroup: "Renomear grupo {{name}}",
       deleteGroup: "Excluir grupo {{name}}",
-      groupSubtitle: "{{count}} skills",
+      groupSubtitle: "{{enabled}}/{{total}} ativados",
+      groupSubtitleEmpty: "0 skills",
       groupEmpty: "Não há skills neste grupo",
       groupCreated: "Grupo criado",
       groupCreateFailed: "Falha ao criar o grupo",
@@ -2365,6 +2376,19 @@ export const ptBR: TranslationResources = {
       empty: {
         title: "Ainda não há skills",
         hint: "O host não registrou nenhum skill.",
+      },
+    },
+    mcp: {
+      title: "Gerenciador MCP",
+      loading: "Carregando servidores MCP...",
+      subtitle: "{{count}} servidores",
+      newSessionHint: "Alterações entram em vigor em novas sessões",
+      toggleServer: "Alternar {{name}}",
+      toggleFailed: "Falha ao alternar o servidor MCP",
+      serverMeta: "{{type}} · {{command}}",
+      empty: {
+        title: "Nenhum servidor MCP",
+        hint: "Adicione servidores em opencode.jsonc",
       },
     },
   },

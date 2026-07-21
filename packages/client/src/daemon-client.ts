@@ -16,6 +16,7 @@ import {
   type ServerInfoStatusPayload,
   type HostQuotaSnapshot,
   type HostRolesSnapshot,
+  type HostMcpSnapshot,
   type HostSkillsSnapshot,
   type HostToolsError,
 } from "@getpaseo/protocol/messages";
@@ -5398,6 +5399,83 @@ export class DaemonClient {
 
   onHostSkillsChanged(handler: (snapshot: HostSkillsSnapshot) => void): () => void {
     return this.on("host.skills.changed", (message) => handler(message.payload));
+  }
+
+  async hostMcpList(options?: HostToolsCallOptions): Promise<HostMcpSnapshot> {
+    const resolvedRequestId = this.createRequestId(options?.requestId);
+    const message = SessionInboundMessageSchema.parse({
+      type: "host.mcp.list.request",
+      requestId: resolvedRequestId,
+    });
+    return this.sendRequest({
+      requestId: resolvedRequestId,
+      message,
+      timeout: options?.timeout,
+      options: { skipQueue: true },
+      select: (msg) => {
+        if (msg.type !== "host.mcp.list.response") {
+          return null;
+        }
+        if (msg.payload.requestId !== resolvedRequestId) {
+          return null;
+        }
+        return msg.payload;
+      },
+    });
+  }
+
+  async hostMcpSubscribe(subscribe: boolean, options?: HostToolsCallOptions): Promise<boolean> {
+    const resolvedRequestId = this.createRequestId(options?.requestId);
+    const message = SessionInboundMessageSchema.parse({
+      type: "host.mcp.subscribe.request",
+      subscribe,
+      requestId: resolvedRequestId,
+    });
+    return this.sendRequest({
+      requestId: resolvedRequestId,
+      message,
+      timeout: options?.timeout,
+      select: (msg) => {
+        if (msg.type !== "host.mcp.subscribe.response") {
+          return null;
+        }
+        if (msg.payload.requestId !== resolvedRequestId) {
+          return null;
+        }
+        return msg.payload.ok;
+      },
+    });
+  }
+
+  async hostMcpToggle(
+    input: { name: string; enable: boolean },
+    options?: HostToolsCallOptions,
+  ): Promise<HostToolsActionResult> {
+    const resolvedRequestId = this.createRequestId(options?.requestId);
+    const message = SessionInboundMessageSchema.parse({
+      type: "host.mcp.toggle.request",
+      name: input.name,
+      enable: input.enable,
+      requestId: resolvedRequestId,
+    });
+    return this.sendRequest({
+      requestId: resolvedRequestId,
+      message,
+      timeout: options?.timeout,
+      select: (msg) => {
+        if (msg.type !== "host.mcp.toggle.response") {
+          return null;
+        }
+        if (msg.payload.requestId !== resolvedRequestId) {
+          return null;
+        }
+        return { ok: msg.payload.ok, ...(msg.payload.error ? { error: msg.payload.error } : {}) };
+      },
+    });
+  }
+
+  onHostMcpChanged(handler: (snapshot: HostMcpSnapshot) => void): () => void {
+    return this.on("host.mcp.changed", (message) => handler(message.payload));
   }
 
   // ============================================================================

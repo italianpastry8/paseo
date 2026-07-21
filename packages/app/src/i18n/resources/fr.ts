@@ -2186,6 +2186,7 @@ export const fr: TranslationResources = {
         quota: "Centre de quotas",
         roles: "Rôles et modèles",
         skills: "Gestionnaire de skills",
+        mcp: "Gestionnaire MCP",
       },
     },
     sections: {
@@ -2204,6 +2205,11 @@ export const fr: TranslationResources = {
         subtitle: "Activez, désactivez et regroupez les skills de l'hôte",
         badge: "Skills",
       },
+      mcp: {
+        title: "Gestionnaire MCP",
+        subtitle: "Activez et désactivez les serveurs MCP",
+        badge: "MCP",
+      },
     },
     empty: {
       title: "Outils de l'hôte indisponibles",
@@ -2220,6 +2226,10 @@ export const fr: TranslationResources = {
       },
       skills: {
         title: "Le gestionnaire de skills est indisponible",
+        hint: "Mettez à jour l'hôte pour l'utiliser.",
+      },
+      mcp: {
+        title: "Le gestionnaire MCP est indisponible",
         hint: "Mettez à jour l'hôte pour l'utiliser.",
       },
     },
@@ -2367,7 +2377,8 @@ export const fr: TranslationResources = {
       renamePlaceholder: "Nom du groupe",
       renameGroup: "Renommer le groupe {{name}}",
       deleteGroup: "Supprimer le groupe {{name}}",
-      groupSubtitle: "{{count}} skills",
+      groupSubtitle: "{{enabled}}/{{total}} activés",
+      groupSubtitleEmpty: "0 skill",
       groupEmpty: "Aucun skill dans ce groupe",
       groupCreated: "Groupe créé",
       groupCreateFailed: "Échec de la création du groupe",
@@ -2387,6 +2398,19 @@ export const fr: TranslationResources = {
       empty: {
         title: "Aucun skill pour le moment",
         hint: "L'hôte n'a enregistré aucun skill.",
+      },
+    },
+    mcp: {
+      title: "Gestionnaire MCP",
+      loading: "Chargement des serveurs MCP...",
+      subtitle: "{{count}} serveurs",
+      newSessionHint: "Les changements prennent effet dans les nouvelles sessions",
+      toggleServer: "Basculer {{name}}",
+      toggleFailed: "Échec du basculement du serveur MCP",
+      serverMeta: "{{type}} · {{command}}",
+      empty: {
+        title: "Aucun serveur MCP",
+        hint: "Ajoutez des serveurs dans opencode.jsonc",
       },
     },
   },

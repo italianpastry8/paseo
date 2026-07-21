@@ -5,9 +5,9 @@
 import type { Href } from "expo-router";
 import { buildHostRootRoute } from "@/utils/host-routes";
 
-export type HostToolsSection = "quota" | "roles" | "skills";
+export type HostToolsSection = "quota" | "roles" | "skills" | "mcp";
 
-const HOST_TOOLS_SECTIONS: readonly HostToolsSection[] = ["quota", "roles", "skills"];
+const HOST_TOOLS_SECTIONS: readonly HostToolsSection[] = ["quota", "roles", "skills", "mcp"];
 
 export function isHostToolsSection(value: string): value is HostToolsSection {
   return (HOST_TOOLS_SECTIONS as readonly string[]).includes(value);
@@ -28,6 +28,10 @@ export function buildHostToolsRolesRoute(serverId: string): Href {
 
 export function buildHostToolsSkillsRoute(serverId: string): Href {
   return buildHostToolsRoute(serverId, "skills");
+}
+
+export function buildHostToolsMcpRoute(serverId: string): Href {
+  return buildHostToolsRoute(serverId, "mcp");
 }
 
 export function buildHostToolsIndexRoute(serverId: string): Href {

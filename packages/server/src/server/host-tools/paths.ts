@@ -23,6 +23,7 @@ export interface HostToolsPaths {
   omoConfigPath: string;
   skillManagerStatePath: string;
   opencodeCommand: string;
+  opencodeConfigPath: string;
 }
 
 export function defaultHostToolsPaths(): HostToolsPaths {
@@ -35,5 +36,6 @@ export function defaultHostToolsPaths(): HostToolsPaths {
     omoConfigPath: resolveHomePath("~/.config/opencode/oh-my-opencode-slim.json"),
     skillManagerStatePath: resolveHomePath("~/.agents/skill-manager.json"),
     opencodeCommand: "opencode",
+    opencodeConfigPath: resolveHomePath("~/.config/opencode/opencode.jsonc"),
   };
 }
