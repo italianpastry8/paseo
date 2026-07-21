@@ -1,6 +1,6 @@
 ---
 name: local-build
-description: Build local DMG and APK artifacts of Paseo (bypassing release/CI). Use when the user says "build dmg", "build apk", "编译 dmg", "编译 apk", "本地编译", or wants runnable installers for personal use without a formal release. Handles GFW network blocks on Java/gradle TLS and the macOS Tahoe dmgbuild bug. Produces unsigned, unnotarized artifacts in packages/desktop/release/ and packages/app/android/app/build/outputs/apk/release/.
+description: Build local DMG and APK artifacts of Paseo (bypassing release/CI). Use when the user says "build dmg", "build apk", "编译 dmg", "编译 apk", "本地编译", or wants runnable installers for personal use without a formal release. Handles GFW network blocks on Java/gradle TLS, the macOS Tahoe dmgbuild bug, and the macOS 26 Electron Framework codesign Team ID mismatch. Produces unsigned, unnotarized artifacts in packages/desktop/release/ and packages/app/android/app/build/outputs/apk/release/.
 user-invocable: true
 ---
 
@@ -16,6 +16,7 @@ Build runnable Paseo installers for personal use — no version bump, no changel
 - User is on a feature branch (e.g. `save-host-tools`) that isn't on `main` and shouldn't be released yet.
 - User is behind the GFW (mainland China) — gradle/electron downloads fail with TLS handshake errors.
 - User is on macOS 25+ (Tahoe) where `dmgbuild` bundle crashes on `hdiutil` plist parsing.
+- User is on macOS 26+ (Tahoe) where Electron Framework ad-hoc signatures have mismatched Team IDs, causing `SIGABRT` on launch.
 
 If the user actually wants to ship to other people, use `release-beta` or `release-stable` instead.
 
@@ -174,6 +175,32 @@ df -h / | tail -1   # Avail column must show >= 5Gi
 
 If disk is full, the `.app` copy fails with `No space left on device` mid-build. Clean `~/.cache`, `~/.npm/_cacache`, `~/.gradle/caches`, old worktree `node_modules`, and old `release/` dirs before retrying.
 
+### 2f. Re-sign the .app (macOS 26 Tahoe codesign Team ID mismatch — REQUIRED)
+
+macOS 26 (Tahoe) enforces strict code-signing Team ID checks on Electron Framework. The ad-hoc signature produced by electron-builder (with `CSC_IDENTITY_AUTO_DISCOVERY=false`) gives the main executable and the bundled `Electron Framework.framework` different Team IDs, causing a crash on launch:
+
+```
+Library not loaded: @rpath/Electron Framework.framework/Electron Framework
+...code signature in ... not valid for use in process: mapping process and mapped file
+(non-platform) have different Team IDs
+```
+
+After electron-builder produces the `.app`, always re-sign it before packaging into the DMG:
+
+```bash
+APP="packages/desktop/release/mac-arm64/Paseo.app"
+xattr -cr "$APP"
+codesign --force --deep --sign - "$APP"
+codesign --verify --deep --strict "$APP"   # must print nothing (success)
+```
+
+`xattr -cr` strips quarantine/extended attributes that can interfere with re-signing. `codesign --force --deep --sign -` applies a single ad-hoc identity to every framework and helper inside the bundle, resolving the Team ID mismatch. Verify the signature before proceeding.
+
+If the DMG was already built without this step, you can either:
+
+- Re-sign the installed `/Applications/Paseo.app` directly (quick fix for the current install)
+- Re-sign the `.app` in `packages/desktop/release/mac-arm64/` and rebuild the DMG with `hdiutil create` (Step 2d) for a clean distributable
+
 ### DMG output
 
 ```
@@ -303,6 +330,10 @@ npm run build:server:clean
 (cd packages/desktop && npm run build:main)
 (cd packages/desktop && CSC_IDENTITY_AUTO_DISCOVERY=false \
     npx electron-builder --config electron-builder.yml -c.mac.notarize=false --mac)
+# Re-sign the .app to fix macOS 26 Tahoe Team ID mismatch (Step 2f)
+APP="packages/desktop/release/mac-arm64/Paseo.app"
+xattr -cr "$APP" && codesign --force --deep --sign - "$APP"
+codesign --verify --deep --strict "$APP" && echo "codesign OK"
 # If dmgbuild crashed, the manual hdiutil fallback (Step 2d) runs here.
 ls -lh packages/desktop/release/
 ```
@@ -355,15 +386,16 @@ rm -rf packages/app/android/app/build/outputs/apk/release/*.apk  # KEEP THIS —
 
 ## Failure mode reference
 
-| Symptom                                                                                                           | Cause                                                                             | Fix                                                                                                          |
-| ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `cross-env: command not found` in nohup shell                                                                     | detached shell PATH lacks node_modules/.bin                                       | Use `PASEO_WEB_PLATFORM=electron npx expo export` directly (no cross-env)                                    |
-| `Could not get resource 'https://release-assets.githubusercontent.com/...'` EOF                                   | GFW blocks electron download                                                      | Set `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/`                                                |
-| `Response code 404 for dmg-builder@1.2.0` from npmmirror                                                          | npmmirror doesn't mirror electron-builder-binaries                                | Unset `ELECTRON_BUILDER_BINARIES_MIRROR`, let it use github (cached at `~/Library/Caches/electron-builder/`) |
-| `plistlib.InvalidFileException: Invalid file` in dmgbuild                                                         | macOS Tahoe + Python 3.14 hdiutil plist bug                                       | Use manual `hdiutil create` (Step 2d)                                                                        |
-| `No space left on device` during `.app` copy                                                                      | disk full                                                                         | Clean `~/.cache`, old worktrees, retry (Step 2e)                                                             |
-| `Remote host terminated the handshake` on `plugins.gradle.org` / maven central                                    | GFW blocks Java TLS clients                                                       | aliyun patch (Step 1) + `~/.gradle/init.d/aliyun-mirror.gradle`                                              |
-| `Unresolved reference: maven` in `.kts` after patch                                                               | patcher injected into single-line block wrong                                     | Re-run fixed patcher (handles `repositories { x }` correctly)                                                |
-| `Could not resolve ... after prebuild`                                                                            | prebuild `--clean` overwrote `android/build.gradle` patch                         | Re-run patcher after prebuild (Step 3d)                                                                      |
-| `:react-native-screens:configureNdkBuild FAILED` mid-build but earlier tasks passed                               | GFW intermittent block on one artifact                                            | Retry `./gradlew assembleRelease --continue` 2-3 times                                                       |
-| `:app:createBundleReleaseJsAndAssets FAILED` / `Unable to resolve module @getpaseo/client/internal/daemon-client` | DMG's `build:app-deps:clean` wiped `packages/client/dist/` while APK was bundling | Re-run `npm run build:client`, then retry gradle. Don't parallelize DMG + APK.                               |
+| Symptom                                                                                                            | Cause                                                                                                  | Fix                                                                                                              |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `cross-env: command not found` in nohup shell                                                                      | detached shell PATH lacks node_modules/.bin                                                            | Use `PASEO_WEB_PLATFORM=electron npx expo export` directly (no cross-env)                                        |
+| `Could not get resource 'https://release-assets.githubusercontent.com/...'` EOF                                    | GFW blocks electron download                                                                           | Set `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/`                                                    |
+| `Response code 404 for dmg-builder@1.2.0` from npmmirror                                                           | npmmirror doesn't mirror electron-builder-binaries                                                     | Unset `ELECTRON_BUILDER_BINARIES_MIRROR`, let it use github (cached at `~/Library/Caches/electron-builder/`)     |
+| `plistlib.InvalidFileException: Invalid file` in dmgbuild                                                          | macOS Tahoe + Python 3.14 hdiutil plist bug                                                            | Use manual `hdiutil create` (Step 2d)                                                                            |
+| `No space left on device` during `.app` copy                                                                       | disk full                                                                                              | Clean `~/.cache`, old worktrees, retry (Step 2e)                                                                 |
+| `Remote host terminated the handshake` on `plugins.gradle.org` / maven central                                     | GFW blocks Java TLS clients                                                                            | aliyun patch (Step 1) + `~/.gradle/init.d/aliyun-mirror.gradle`                                                  |
+| `Unresolved reference: maven` in `.kts` after patch                                                                | patcher injected into single-line block wrong                                                          | Re-run fixed patcher (handles `repositories { x }` correctly)                                                    |
+| `Could not resolve ... after prebuild`                                                                             | prebuild `--clean` overwrote `android/build.gradle` patch                                              | Re-run patcher after prebuild (Step 3d)                                                                          |
+| `:react-native-screens:configureNdkBuild FAILED` mid-build but earlier tasks passed                                | GFW intermittent block on one artifact                                                                 | Retry `./gradlew assembleRelease --continue` 2-3 times                                                           |
+| `:app:createBundleReleaseJsAndAssets FAILED` / `Unable to resolve module @getpaseo/client/internal/daemon-client`  | DMG's `build:app-deps:clean` wiped `packages/client/dist/` while APK was bundling                      | Re-run `npm run build:client`, then retry gradle. Don't parallelize DMG + APK.                                   |
+| `EXC_CRASH (SIGABRT)` / `Library not loaded: @rpath/Electron Framework.framework` / `different Team IDs` on launch | macOS 26 Tahoe enforces Team ID match; ad-hoc sign gives Framework a different ID than the main binary | `xattr -cr <app>` then `codesign --force --deep --sign - <app>` (Step 2f). Rebuild DMG or re-sign installed app. |
