@@ -17,8 +17,8 @@ const CLAUDE_SETTINGS_MODEL_ENV_KEYS = [
   "ANTHROPIC_DEFAULT_HAIKU_MODEL",
 ] as const;
 
-export function getClaudeModels(): AgentModelDefinition[] {
-  return getClaudeManifestModels();
+export function getClaudeModels(claudeCodeVersion?: string): AgentModelDefinition[] {
+  return getClaudeManifestModels(claudeCodeVersion);
 }
 
 export function findClaudeModel(
@@ -34,8 +34,9 @@ export function findClaudeModel(
 export async function getClaudeModelsWithSettings(
   logger: Logger,
   configDir?: string,
+  claudeCodeVersion?: string,
 ): Promise<AgentModelDefinition[]> {
-  const hardcodedModels = getClaudeModels();
+  const hardcodedModels = getClaudeModels(claudeCodeVersion);
   const settingsModels = await readClaudeSettingsModels(logger, configDir);
   if (settingsModels.length === 0) {
     return hardcodedModels;
@@ -130,4 +131,33 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  */
 export function normalizeClaudeRuntimeModelId(value: string | null | undefined): string | null {
   return normalizeClaudeManifestRuntimeModelId(value);
+}
+
+/**
+ * Placeholder model values Claude Code writes on frames with no real inference behind them.
+ * These are not models and must never be displayed.
+ */
+const CLAUDE_PLACEHOLDER_MODEL_IDS = new Set(["<synthetic>"]);
+
+/**
+ * Resolve a model id observed on a Claude assistant frame, for display.
+ *
+ * Prefers the manifest-normalized id so equivalent spellings collapse (a dated alias and a
+ * gateway prefix are the same model), but falls back to the raw string when the manifest does
+ * not know it. The fallback matters: Claude Code is an Anthropic-compatible client, so subagents
+ * routinely report models that are not Anthropic's — Z.AI GLM ids via `ANTHROPIC_BASE_URL`
+ * (docs/custom-providers.md) among them. Manifest-only resolution would blank the model for
+ * exactly those users.
+ *
+ * Note a `[1m]` suffix is preserved where it names its own manifest entry: a 1M-context variant
+ * is a distinct model with a distinct context window, not a spelling of the 200K one.
+ *
+ * Returns null for placeholders and empty values, meaning "not observed".
+ */
+export function resolveObservedClaudeModelId(value: string | null | undefined): string | null {
+  const trimmed = typeof value === "string" ? value.trim() : "";
+  if (!trimmed || CLAUDE_PLACEHOLDER_MODEL_IDS.has(trimmed)) {
+    return null;
+  }
+  return normalizeClaudeManifestRuntimeModelId(trimmed) ?? trimmed;
 }

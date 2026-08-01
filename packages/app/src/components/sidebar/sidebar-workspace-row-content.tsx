@@ -1,13 +1,7 @@
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ActivityIndicator,
-  Pressable,
-  Text,
-  View,
-  type GestureResponderEvent,
-  type ViewStyle,
-} from "react-native";
+import { Pressable, Text, View, type GestureResponderEvent, type ViewStyle } from "react-native";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import {
   CircleAlert,
@@ -19,6 +13,7 @@ import {
   Monitor,
   SquareTerminal,
 } from "lucide-react-native";
+import { SidebarSubtitleProjectIcon } from "@/components/sidebar/sidebar-subtitle-project-icon";
 import { WorkspaceHoverCard } from "@/components/workspace-hover-card";
 import { SyncedLoader } from "@/components/synced-loader";
 import type { SidebarWorkspaceEntry } from "@/hooks/use-sidebar-workspaces-list";
@@ -54,7 +49,7 @@ const purpleColorMapping = (theme: Theme) => ({ color: theme.colors.palette.purp
 
 const ThemedExternalLink = withUnistyles(ExternalLink);
 const ThemedGitPullRequest = withUnistyles(GitPullRequest);
-const ThemedActivityIndicator = withUnistyles(ActivityIndicator);
+const ThemedLoadingSpinner = withUnistyles(LoadingSpinner);
 const ThemedCircleAlert = withUnistyles(CircleAlert);
 const ThemedSyncedLoader = withUnistyles(SyncedLoader);
 const ThemedMonitor = withUnistyles(Monitor);
@@ -99,6 +94,8 @@ export function SidebarWorkspaceRowFrame({
 export const SidebarWorkspaceRowContent = memo(function SidebarWorkspaceRowContent({
   workspace,
   subtitle,
+  subtitleProjectName = null,
+  subtitleProjectIconDataUri = null,
   scriptIconKind = null,
   isHovered,
   isLoading,
@@ -110,6 +107,9 @@ export const SidebarWorkspaceRowContent = memo(function SidebarWorkspaceRowConte
 }: {
   workspace: SidebarWorkspaceEntry;
   subtitle?: string | null;
+  /** Project named by the subtitle. Set it to lead the subtitle line with that project's icon. */
+  subtitleProjectName?: string | null;
+  subtitleProjectIconDataUri?: string | null;
   scriptIconKind?: SidebarWorkspaceScriptIconKind | null;
   isHovered: boolean;
   isLoading: boolean;
@@ -154,9 +154,19 @@ export const SidebarWorkspaceRowContent = memo(function SidebarWorkspaceRowConte
             <View style={sidebarWorkspaceRowStyles.rowRight}>{children}</View>
           </View>
           {subtitle ? (
-            <Text style={styles.workspaceSubtitle} numberOfLines={1}>
-              {subtitle}
-            </Text>
+            <View style={styles.workspaceSubtitleRow}>
+              {subtitleProjectName ? (
+                <SidebarSubtitleProjectIcon
+                  projectViewKey={workspace.projectViewKey}
+                  projectName={subtitleProjectName}
+                  iconDataUri={subtitleProjectIconDataUri}
+                  testID={`sidebar-row-project-icon-${workspace.workspaceKey}`}
+                />
+              ) : null}
+              <Text style={styles.workspaceSubtitle} numberOfLines={1}>
+                {subtitle}
+              </Text>
+            </View>
           ) : null}
           {workspace.prHint ? (
             <View style={styles.workspacePrBadgeRow}>
@@ -207,7 +217,7 @@ function WorkspaceStatusIndicator({
   if (loading) {
     return (
       <View style={styles.workspaceStatusDot} testID="workspace-status-indicator-loading">
-        <ThemedActivityIndicator size={8} uniProps={foregroundMutedColorMapping} />
+        <ThemedLoadingSpinner size={8} uniProps={foregroundMutedColorMapping} />
       </View>
     );
   }
@@ -573,10 +583,18 @@ const styles = StyleSheet.create((theme) => ({
   workspaceBranchTextHovered: {
     opacity: 1,
   },
+  workspaceSubtitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[1],
+    minWidth: 0,
+  },
   workspaceSubtitle: {
     color: theme.colors.foregroundMuted,
     fontSize: theme.fontSize.xs,
     lineHeight: 14,
+    flexShrink: 1,
+    minWidth: 0,
   },
   workspacePrBadgeRow: {
     flexDirection: "row",

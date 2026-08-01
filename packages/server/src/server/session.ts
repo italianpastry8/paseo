@@ -1,7 +1,7 @@
 import equal from "fast-deep-equal";
 import { v4 as uuidv4 } from "uuid";
 import { lstat, mkdir, mkdtemp, rename, rm, stat } from "node:fs/promises";
-import { resolve, sep } from "path";
+import { basename, resolve, sep } from "path";
 import { homedir } from "node:os";
 import { CLIENT_CAPS, type ClientCapability } from "@getpaseo/protocol/client-capabilities";
 import {
@@ -138,6 +138,11 @@ import {
 } from "./workspace-registry.js";
 import { wrapSpokenInput } from "./voice-config.js";
 import { isVoicePermissionAllowed } from "./voice-permission-policy.js";
+import {
+  readProjectIcon,
+  removeProjectCustomIcon,
+  setProjectCustomIcon,
+} from "../utils/project-custom-icon.js";
 import { VoiceSession } from "./session/voice/voice-session.js";
 import { CheckoutSession } from "./session/checkout/checkout-session.js";
 import {
@@ -406,6 +411,7 @@ export interface SessionOptions {
   onMessage: (msg: SessionOutboundMessage) => void;
   onMessageToSource?: (source: object, msg: SessionOutboundMessage) => void;
   onBinaryMessage?: (frame: Uint8Array) => void;
+  onBinaryMessageToSource?: (source: object, frame: Uint8Array) => Promise<void>;
   getTransportBufferedAmount?: () => number | null;
   onLifecycleIntent?: (intent: SessionLifecycleIntent) => void;
   onWorkspaceRecovered?: (workspace: PersistedWorkspaceRecord) => Promise<void>;
@@ -570,6 +576,9 @@ export class Session {
     | ((source: object, msg: SessionOutboundMessage) => void)
     | null;
   private readonly onBinaryMessage: ((frame: Uint8Array) => void) | null;
+  private readonly onBinaryMessageToSource:
+    | ((source: object, frame: Uint8Array) => Promise<void>)
+    | null;
   private readonly getTransportBufferedAmount: () => number | null;
   private readonly onLifecycleIntent: ((intent: SessionLifecycleIntent) => void) | null;
   private readonly onWorkspaceRecovered:
@@ -650,6 +659,7 @@ export class Session {
       onMessage,
       onMessageToSource,
       onBinaryMessage,
+      onBinaryMessageToSource,
       getTransportBufferedAmount,
       onLifecycleIntent,
       onWorkspaceRecovered,
@@ -703,6 +713,7 @@ export class Session {
     this.onMessage = onMessage;
     this.onMessageToSource = onMessageToSource ?? null;
     this.onBinaryMessage = onBinaryMessage ?? null;
+    this.onBinaryMessageToSource = onBinaryMessageToSource ?? null;
     this.getTransportBufferedAmount = getTransportBufferedAmount ?? (() => 0);
     this.onLifecycleIntent = onLifecycleIntent ?? null;
     this.onWorkspaceRecovered = onWorkspaceRecovered ?? null;
@@ -717,8 +728,8 @@ export class Session {
     });
     this.workspaceFilesSession = new WorkspaceFilesSession({
       host: {
-        emit: (msg) => this.emit(msg),
-        emitBinary: (frame) => this.emitBinary(frame),
+        emit: (msg, source) => this.emitForSource(msg, source),
+        emitBinary: (frame, source) => this.emitBinaryForFileTransfer(frame, source),
         hasBinaryChannel: () => this.onBinaryMessage !== null,
       },
       downloadTokenStore,
@@ -739,6 +750,7 @@ export class Session {
     });
     this.workspaceAutoName = workspaceAutoName;
     this.workspaceProvisioning = createWorkspaceProvisioningService({
+      serverId,
       workspaceRegistry: this.workspaceRegistry,
       projectRegistry: this.projectRegistry,
       workspaceGitService: this.workspaceGitService,
@@ -1792,7 +1804,7 @@ export class Session {
       this.dispatchCheckoutMessage(msg) ??
       this.dispatchWorkspaceRecoveryMessage(msg) ??
       this.dispatchWorkspaceAndProjectMessage(msg) ??
-      this.dispatchWorkspaceFileMessage(msg) ??
+      this.dispatchWorkspaceFileMessage(msg, source) ??
       this.dispatchProviderMessage(msg) ??
       this.dispatchTerminalMessage(msg) ??
       this.dispatchChatScheduleLoopMessage(msg) ??
@@ -2170,6 +2182,8 @@ export class Session {
         return this.handleUpdateAgentRequest(msg.agentId, msg.name, msg.labels, msg.requestId);
       case "project.rename.request":
         return this.handleProjectRenameRequest(msg.projectId, msg.customName, msg.requestId);
+      case "project.icon.set.request":
+        return this.handleProjectIconSetRequest(msg);
       case "send_agent_message_request":
         return this.handleSendAgentMessageRequest(msg);
       case "wait_for_finish_request":
@@ -2309,6 +2323,8 @@ export class Session {
     switch (msg.type) {
       case "fetch_workspaces_request":
         return this.handleFetchWorkspacesRequest(msg);
+      case "project.list.request":
+        return this.handleProjectListRequest(msg.requestId);
       case "paseo_worktree_list_request":
         return this.handlePaseoWorktreeListRequest(msg);
       case "paseo_worktree_archive_request":
@@ -2349,10 +2365,13 @@ export class Session {
     }
   }
 
-  private dispatchWorkspaceFileMessage(msg: SessionInboundMessage): Promise<void> | undefined {
+  private dispatchWorkspaceFileMessage(
+    msg: SessionInboundMessage,
+    source?: object,
+  ): Promise<void> | undefined {
     switch (msg.type) {
       case "file_explorer_request":
-        return this.workspaceFilesSession.handleFileExplorerRequest(msg);
+        return this.workspaceFilesSession.handleFileExplorerRequest(msg, source);
       case "fs.file.subscribe.request":
         return this.workspaceFilesSession.handleFileSubscribeRequest(msg);
       case "fs.file.unsubscribe.request":
@@ -2362,6 +2381,8 @@ export class Session {
         return this.workspaceFilesSession.handleFileWriteRequest(msg);
       case "project_icon_request":
         return this.workspaceFilesSession.handleProjectIconRequest(msg);
+      case "project.icon.get.request":
+        return this.handleProjectIconGetRequest(msg.projectId, msg.requestId);
       case "file_download_token_request":
         return this.workspaceFilesSession.handleFileDownloadTokenRequest(msg);
       case "file.upload.request":
@@ -2864,7 +2885,7 @@ export class Session {
       // resolved name lands in the UI immediately.
       const workspaces = await this.workspaceRegistry.list();
       const affectedWorkspaceIds = workspaces
-        .filter((workspace) => workspace.projectId === projectId)
+        .filter((workspace) => workspace.projectId === existing.projectId)
         .map((workspace) => workspace.workspaceId);
       if (affectedWorkspaceIds.length > 0) {
         await this.emitWorkspaceUpdatesForWorkspaceIds(affectedWorkspaceIds);
@@ -2896,6 +2917,61 @@ export class Session {
     }
   }
 
+  private async handleProjectIconSetRequest(
+    request: Extract<SessionInboundMessage, { type: "project.icon.set.request" }>,
+  ): Promise<void> {
+    const { projectId, requestId } = request;
+    try {
+      const updated = await setProjectCustomIcon({
+        paseoHome: this.paseoHome,
+        projectId,
+        source: request.source,
+        projects: this.projectRegistry,
+      });
+
+      this.emit({
+        type: "project.icon.set.response",
+        payload: { requestId, projectId, accepted: true, error: null },
+      });
+      this.emitProjectUpdate({ kind: "upsert", project: updated });
+
+      const affectedWorkspaceIds = (await this.workspaceRegistry.list())
+        .filter((workspace) => workspace.projectId === projectId)
+        .map((workspace) => workspace.workspaceId);
+      if (affectedWorkspaceIds.length > 0) {
+        await this.emitWorkspaceUpdatesForWorkspaceIds(affectedWorkspaceIds);
+      }
+    } catch (error) {
+      this.emit({
+        type: "project.icon.set.response",
+        payload: {
+          requestId,
+          projectId,
+          accepted: false,
+          error: getErrorMessageOr(error, "Failed to update project icon"),
+        },
+      });
+    }
+  }
+
+  private async handleProjectIconGetRequest(projectId: string, requestId: string): Promise<void> {
+    try {
+      const project = await this.projectRegistry.get(projectId);
+      if (!project) throw new Error("Project not found");
+
+      const icon = await readProjectIcon({ paseoHome: this.paseoHome, project });
+      this.emit({
+        type: "project.icon.get.response",
+        payload: { projectId, icon, error: null, requestId },
+      });
+    } catch (error) {
+      this.emit({
+        type: "project.icon.get.response",
+        payload: { projectId, icon: null, error: getErrorMessage(error), requestId },
+      });
+    }
+  }
+
   private async handleProjectRemoveRequest(
     request: Extract<SessionInboundMessage, { type: "project.remove.request" }>,
   ): Promise<void> {
@@ -2903,8 +2979,10 @@ export class Session {
     this.sessionLogger.info({ projectId, requestId }, "session: project.remove.request");
 
     try {
+      const project = await this.projectRegistry.get(projectId);
+      const resolvedProjectId = project?.projectId ?? projectId;
       const projectWorkspaces = (await this.workspaceRegistry.list()).filter(
-        (workspace) => workspace.projectId === projectId,
+        (workspace) => workspace.projectId === resolvedProjectId,
       );
       const activeWorkspaceIds = projectWorkspaces
         .filter((workspace) => !workspace.archivedAt)
@@ -2932,7 +3010,16 @@ export class Session {
           removedWorkspaceIds.push(workspaceId);
         }
 
-        await this.projectRegistry.remove(projectId);
+        await this.projectRegistry.remove(resolvedProjectId);
+        await removeProjectCustomIcon({
+          paseoHome: this.paseoHome,
+          projectId: resolvedProjectId,
+        }).catch((error) => {
+          this.sessionLogger.warn(
+            { err: error, projectId: resolvedProjectId },
+            "Failed to clean up removed project icon",
+          );
+        });
       } finally {
         if (activeWorkspaceIds.length > 0) {
           this.clearWorkspaceArchiving(activeWorkspaceIds);
@@ -4432,6 +4519,11 @@ export class Session {
       diffStat = snapshot.git.diffStat;
     }
 
+    const worktreeSlug =
+      workspace.isPaseoOwnedWorktree && workspace.worktreeRoot
+        ? basename(workspace.worktreeRoot)
+        : undefined;
+
     return {
       id: workspace.workspaceId,
       projectId: workspace.projectId,
@@ -4439,8 +4531,10 @@ export class Session {
         ? resolveProjectDisplayName(resolvedProjectRecord)
         : workspace.projectId,
       projectCustomName: resolvedProjectRecord?.customName ?? null,
+      projectCustomIconRevision: resolvedProjectRecord?.customIconRevision ?? null,
       projectRootPath: resolvedProjectRecord?.rootPath ?? workspace.cwd,
       workspaceDirectory: workspace.cwd,
+      worktreeSlug,
       projectKind: (resolvedProjectRecord?.kind ?? "directory") === "git" ? "git" : "non_git",
       workspaceKind: workspace.kind,
       name: resolveWorkspaceDisplayName(workspace),
@@ -4525,8 +4619,10 @@ export class Session {
         ? resolveProjectDisplayName(projectRecord)
         : result.workspace.projectId,
       projectCustomName: projectRecord?.customName ?? null,
+      projectCustomIconRevision: projectRecord?.customIconRevision ?? null,
       projectRootPath: projectRecord?.rootPath ?? result.repoRoot,
       workspaceDirectory: result.workspace.cwd,
+      worktreeSlug: basename(result.worktree.worktreePath),
       projectKind: projectRecord?.kind ?? "git",
       workspaceKind: result.workspace.kind,
       name: resolveWorkspaceName({
@@ -4693,8 +4789,10 @@ export class Session {
   ): WorkspaceProjectDescriptorPayload {
     return {
       projectId: project.projectId,
+      ...(project.projectKey ? { projectKey: project.projectKey } : {}),
       projectDisplayName: resolveProjectDisplayName(project),
       projectCustomName: project.customName ?? null,
+      projectCustomIconRevision: project.customIconRevision ?? null,
       projectRootPath: project.rootPath,
       projectKind: project.kind,
     };
@@ -5162,6 +5260,29 @@ export class Session {
           requestType: request.type,
           error: message,
           code,
+        },
+      });
+    }
+  }
+
+  private async handleProjectListRequest(requestId: string): Promise<void> {
+    try {
+      const projects = (await this.projectRegistry.list())
+        .filter((project) => !project.archivedAt)
+        .map((project) => this.buildProjectDescriptor(project));
+      this.emit({
+        type: "project.list.response",
+        payload: { requestId, projects },
+      });
+    } catch (error) {
+      this.sessionLogger.error({ err: error }, "Failed to handle project.list.request");
+      this.emit({
+        type: "rpc_error",
+        payload: {
+          requestId,
+          requestType: "project.list.request",
+          error: error instanceof Error ? error.message : "Failed to list projects",
+          code: "project_list_failed",
         },
       });
     }
@@ -6773,6 +6894,22 @@ export class Session {
     } catch (error) {
       this.sessionLogger.error({ err: error }, "Failed to emit binary frame");
     }
+  }
+
+  private async emitBinaryForFileTransfer(frame: Uint8Array, source?: object): Promise<void> {
+    if (source && this.onBinaryMessageToSource) {
+      await this.onBinaryMessageToSource(source, frame);
+      return;
+    }
+    this.emitBinary(frame);
+  }
+
+  private emitForSource(msg: SessionOutboundMessage, source?: object): void {
+    if (source && this.onMessageToSource) {
+      this.onMessageToSource(source, msg);
+      return;
+    }
+    this.emit(msg);
   }
 
   /**

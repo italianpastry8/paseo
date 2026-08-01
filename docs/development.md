@@ -21,6 +21,19 @@ Root checkout dev is intentionally split across terminals:
 
 `npm run dev` is only a shorthand for `npm run dev:server`. Keep `127.0.0.1:6767` for the packaged app and production-style `~/.paseo` state.
 
+## Nix desktop package
+
+The flake exposes `packages.<system>.desktop` on Linux and macOS:
+
+```bash
+nix build .#desktop
+```
+
+Linux produces the `paseo-desktop` launcher and desktop entry. macOS produces
+`Applications/Paseo.app` plus the `paseo-desktop` launcher. Both use the nixpkgs
+Electron runtime and the checkout's built daemon, client, and renderer rather
+than downloading a published desktop release.
+
 ### PASEO_HOME
 
 `PASEO_HOME` is the directory that holds runtime state (agents, worktrees, workspace config, sockets, daemon log). Resolution rules:
@@ -241,6 +254,14 @@ hook is unset. Daemon-run loop verify checks and ACP single-string terminal
 commands use the same non-login Bash behavior on macOS/Linux, but preserve their
 existing `cmd.exe /c` string semantics on Windows. Service scripts are separate:
 they launch in a terminal and receive the service environment described below.
+
+Because the shell differs per platform, a lifecycle command that must run
+everywhere cannot use POSIX-only syntax — `VAR=1 cmd` env prefixes, `$VAR`
+expansion, `cp`/`rm`, or a `./scripts/*.sh` entrypoint all fail under PowerShell,
+and `bash` is not guaranteed to exist on Windows. Put that logic in a Node script
+that reads what it needs from `process.env` and invoke it as
+`node ./scripts/<name>.mjs`. This repo's own setup does exactly that in
+`scripts/seed-worktree-dev-state.mjs` and `scripts/seed-ios-native-cache.mjs`.
 
 ```json
 {

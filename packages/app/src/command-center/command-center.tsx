@@ -31,6 +31,11 @@ import { useAggregatedAgents, type AggregatedAgent } from "@/hooks/use-aggregate
 import { useKeyboardShortcutOverrides } from "@/hooks/use-keyboard-shortcut-overrides";
 import { useOpenAddProject } from "@/hooks/use-open-add-project";
 import { useProjects } from "@/hooks/use-projects";
+import {
+  OverlayLayerProvider,
+  useGlobalWebOverlayLayer,
+  useWebOverlayRegistration,
+} from "@/lib/overlay-root";
 import { useHosts } from "@/runtime/host-runtime";
 import { useKeyboardShortcutsStore } from "@/stores/keyboard-shortcuts-store";
 import { navigateToWorkspace } from "@/stores/navigation-active-workspace-store";
@@ -372,15 +377,6 @@ function useCommandCenterState(): CommandCenterState {
     return cancel;
   }, [open]);
 
-  useEffect(() => {
-    if (!open || !isWeb) return;
-    const listener = (event: KeyboardEvent) => {
-      if (key(event.key)) event.preventDefault();
-    };
-    window.addEventListener("keydown", listener, true);
-    return () => window.removeEventListener("keydown", listener, true);
-  }, [key, open]);
-
   return {
     open,
     query,
@@ -405,6 +401,15 @@ interface ResultRowProps {
 
 const ResultRow = memo(function ResultRow({ result, active, onSelect }: ResultRowProps) {
   const press = useCallback(() => onSelect(result), [onSelect, result]);
+  const choice =
+    result.kind === "contribution" && result.contribution.presentation.kind === "choice"
+      ? result.contribution.presentation
+      : null;
+  const accessibilityLabel = choice?.path.join(" › ");
+  const accessibilityState = useMemo(
+    () => (isNative && choice ? { selected: choice.selected } : undefined),
+    [choice],
+  );
   const style = useCallback(
     ({ hovered, pressed }: PressableStateCallbackType & { hovered?: boolean }) => [
       styles.row,
@@ -419,7 +424,15 @@ const ResultRow = memo(function ResultRow({ result, active, onSelect }: ResultRo
     [active, result],
   );
   return (
-    <Pressable style={style} onPress={press}>
+    <Pressable
+      style={style}
+      onPress={press}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={accessibilityState}
+      aria-pressed={isWeb ? choice?.selected : undefined}
+      testID={choice?.testId}
+    >
       <ResultContent result={result} />
     </Pressable>
   );
@@ -501,7 +514,7 @@ function ResultContent({ result }: { result: CommandCenterResult }) {
     );
   }
   return (
-    <View style={styles.rowContent} testID={presentation.testId}>
+    <View style={styles.rowContent}>
       <View style={styles.rowMain}>
         {Icon ? (
           <View style={styles.iconSlot}>
@@ -553,6 +566,7 @@ export function CommandCenter() {
   const state = useCommandCenterState();
   const isCompact = useIsCompactFormFactor();
   const showBottomSheet = isCompact && isNative;
+  const modalLayer = useGlobalWebOverlayLayer("modal", isWeb && state.open && !showBottomSheet);
   const listRef = useRef<FlatList<CommandCenterListRow>>(null);
   const bottomSheetListRef = useRef<BottomSheetFlatListMethods>(null);
   const bottomSheetInputRef = useRef<React.ElementRef<typeof BottomSheetTextInput>>(null);
@@ -618,6 +632,19 @@ export function CommandCenter() {
     [state],
   );
   const submit = useCallback(() => state.key("Enter"), [state]);
+  const handleWebOverlayKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (!state.key(event.key)) return false;
+      event.preventDefault();
+      return true;
+    },
+    [state],
+  );
+  const setWebOverlayScope = useWebOverlayRegistration({
+    active: isWeb && state.open && !showBottomSheet,
+    layer: modalLayer,
+    onKeyDown: handleWebOverlayKeyDown,
+  });
   const backdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
       <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.45} />
@@ -663,27 +690,29 @@ export function CommandCenter() {
   }
   if (!state.open) return null;
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={state.close}>
-      <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={state.close} />
-        <View testID="command-center-panel" style={styles.panel}>
-          <View style={styles.header}>
-            <ThemedTextInput
-              testID="command-center-input"
-              ref={state.inputRef}
-              value={state.query}
-              onChangeText={state.setQuery}
-              placeholder={t("shell.commandCenter.placeholder")}
-              style={styles.input}
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoFocus
-            />
+    <OverlayLayerProvider layer={isWeb ? modalLayer : 0}>
+      <Modal visible transparent animationType="fade" onRequestClose={state.close}>
+        <View style={styles.overlay}>
+          <Pressable style={styles.backdrop} onPress={state.close} />
+          <View ref={setWebOverlayScope} testID="command-center-panel" style={styles.panel}>
+            <View style={styles.header}>
+              <ThemedTextInput
+                testID="command-center-input"
+                ref={state.inputRef}
+                value={state.query}
+                onChangeText={state.setQuery}
+                placeholder={t("shell.commandCenter.placeholder")}
+                style={styles.input}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus
+              />
+            </View>
+            <FlatList ref={listRef} style={styles.results} {...commonListProps} />
           </View>
-          <FlatList ref={listRef} style={styles.results} {...commonListProps} />
         </View>
-      </View>
-    </Modal>
+      </Modal>
+    </OverlayLayerProvider>
   );
 }
 
