@@ -256,9 +256,11 @@ export const AgentFeatureSchema = z.discriminatedUnion("type", [
   AgentFeatureSelectSchema,
 ]);
 
-const AgentModelDefinitionSchema: z.ZodType<AgentModelDefinition> = z.object({
+const AgentModelDefinitionSchema = z.object({
   provider: AgentProviderSchema,
   id: z.string(),
+  aliases: z.array(z.string()).optional(),
+  isSelectable: z.boolean().optional(),
   label: z.string(),
   description: z.string().optional(),
   isDefault: z.boolean().optional(),
@@ -266,7 +268,7 @@ const AgentModelDefinitionSchema: z.ZodType<AgentModelDefinition> = z.object({
   contextWindowMaxTokens: z.number().optional(),
   thinkingOptions: z.array(AgentSelectOptionSchema).optional(),
   defaultThinkingOptionId: z.string().optional(),
-});
+}) satisfies z.ZodType<AgentModelDefinition>;
 
 export const ProviderSnapshotEntrySchema = z.object({
   provider: AgentProviderSchema,
@@ -280,6 +282,29 @@ export const ProviderSnapshotEntrySchema = z.object({
   label: z.string().optional(),
   description: z.string().optional(),
   defaultModeId: z.string().nullable().optional(),
+});
+
+export const CompactProviderSnapshotModelSchema = AgentModelDefinitionSchema.omit({
+  provider: true,
+  thinkingOptions: true,
+}).extend({
+  thinkingSet: z.number().int().nonnegative().optional(),
+});
+
+export const ProviderSnapshotThinkingSetSchema = z.object({
+  options: z.array(AgentSelectOptionSchema),
+  defaultOptionId: z.string().optional(),
+});
+
+export const CompactProviderSnapshotEntrySchema = ProviderSnapshotEntrySchema.omit({
+  models: true,
+}).extend({
+  models: z.array(CompactProviderSnapshotModelSchema).optional(),
+});
+
+export const CompactProviderSnapshotSchema = z.object({
+  entries: z.array(CompactProviderSnapshotEntrySchema),
+  thinkingSets: z.array(ProviderSnapshotThinkingSetSchema),
 });
 
 const AgentCapabilityFlagsSchema: z.ZodType<AgentCapabilityFlags> = z
@@ -620,15 +645,18 @@ export const AgentStreamEventPayloadSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("turn_started"),
     provider: AgentProviderSchema,
+    turnId: z.string().optional(),
   }),
   z.object({
     type: z.literal("turn_completed"),
     provider: AgentProviderSchema,
+    turnId: z.string().optional(),
     usage: AgentUsageSchema.optional(),
   }),
   z.object({
     type: z.literal("turn_failed"),
     provider: AgentProviderSchema,
+    turnId: z.string().optional(),
     error: z.string(),
     code: z.string().optional(),
     diagnostic: z.string().optional(),
@@ -636,6 +664,7 @@ export const AgentStreamEventPayloadSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("turn_canceled"),
     provider: AgentProviderSchema,
+    turnId: z.string().optional(),
     reason: z.string(),
   }),
   z.object({
@@ -693,6 +722,11 @@ const AgentRuntimeInfoSchema: z.ZodType<AgentRuntimeInfo> = z.object({
   extra: z.record(z.string(), z.unknown()).optional(),
 });
 
+const AgentActiveTurnPayloadSchema = z.object({
+  turnId: z.string(),
+  startedAt: z.string().nullable(),
+});
+
 export const AgentSnapshotPayloadSchema = z.object({
   id: z.string(),
   provider: AgentProviderSchema,
@@ -706,6 +740,7 @@ export const AgentSnapshotPayloadSchema = z.object({
   updatedAt: z.string(),
   lastUserMessageAt: z.string().nullable(),
   status: AgentStatusSchema,
+  activeTurn: AgentActiveTurnPayloadSchema.nullable().optional(),
   capabilities: AgentCapabilityFlagsSchema,
   currentModeId: z.string().nullable(),
   availableModes: z.array(AgentModeSchema),
@@ -1316,6 +1351,8 @@ export const ListAvailableProvidersRequestMessageSchema = z.object({
 export const GetProvidersSnapshotRequestMessageSchema = z.object({
   type: z.literal("get_providers_snapshot_request"),
   cwd: z.string().optional(),
+  // COMPAT(compactProviderSnapshots): old daemons ignore this field and return a full snapshot.
+  ifNoneMatch: z.string().optional(),
   requestId: z.string(),
 });
 
@@ -1399,6 +1436,14 @@ export const FetchAgentTimelineRequestMessageSchema = z.object({
   limit: z.number().int().nonnegative().optional(),
   // Default should be projected for app timeline loading.
   projection: z.enum(["projected", "canonical"]).optional(),
+  // Allow the client to merge this bounded page outside its contiguous loaded range.
+  mergeWindow: z.boolean().optional(),
+});
+
+export const AgentTimelineListPromptsRequestMessageSchema = z.object({
+  type: z.literal("agent.timeline.list_prompts.request"),
+  agentId: z.string(),
+  requestId: z.string(),
 });
 
 export const ProviderSubagentListRequestMessageSchema = z.object({
@@ -2416,7 +2461,12 @@ export const UnsubscribeTerminalRequestSchema = z.object({
 
 const TerminalClientMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("input"), data: z.string() }),
-  z.object({ type: z.literal("resize"), rows: z.number(), cols: z.number() }),
+  z.object({
+    type: z.literal("resize"),
+    rows: z.number(),
+    cols: z.number(),
+    intent: z.enum(["claim", "update"]).optional(),
+  }),
   z.object({
     type: z.literal("mouse"),
     row: z.number(),
@@ -2460,6 +2510,7 @@ export const HubExecutionAgentCreateRequestSchema = z.object({
   thinkingOptionId: z.string().optional(),
   featureValues: z.record(z.string(), z.unknown()).optional(),
   env: z.record(z.string(), z.string()).optional(),
+  mcpServers: z.record(z.string(), McpServerConfigSchema).optional(),
   worktree: CreateAgentWorktreeTargetSchema.optional(),
 });
 
@@ -2627,6 +2678,7 @@ export const SessionInboundMessageSchema = z.discriminatedUnion("type", [
   RestartServerRequestMessageSchema,
   DaemonUpdateRequestMessageSchema,
   FetchAgentTimelineRequestMessageSchema,
+  AgentTimelineListPromptsRequestMessageSchema,
   ProviderSubagentListRequestMessageSchema,
   ProviderSubagentTimelineRequestMessageSchema,
   SetAgentTimelineSubscriptionRequestMessageSchema,
@@ -2926,8 +2978,14 @@ export const ServerInfoStatusPayloadSchema = z
         relayConfig: z.boolean().optional(),
         // COMPAT(terminalRestoreModes): added in v0.1.81, remove gate after 2026-11-23.
         "terminal-restore-modes": z.boolean().optional(),
+        // COMPAT(terminalInputModeReplay): added in v0.2.6, remove gate after 2027-02-02.
+        "terminal-input-mode-replay": z.boolean().optional(),
+        // COMPAT(terminalSizeOwnership): added in v0.2.6, remove gate after 2027-02-02.
+        "terminal-size-ownership": z.boolean().optional(),
         // COMPAT(rewind): added in v0.1.X, drop the gate when floor >= v0.1.X.
         rewind: z.boolean().optional(),
+        // COMPAT(agentTimelinePromptIndex): added in v0.2.X, drop the gate when floor >= v0.2.X.
+        agentTimelinePromptIndex: z.boolean().optional(),
         // COMPAT(checkoutRefresh): added in v0.1.86, remove gate after 2026-11-29.
         checkoutRefresh: z.boolean().optional(),
         // COMPAT(workspaceMultiplicity): added in v0.1.97, drop the gate when floor >= v0.1.97
@@ -2984,6 +3042,10 @@ export const ServerInfoStatusPayloadSchema = z
         forgeProviders: z.boolean().optional(),
         // COMPAT(selectiveAgentTimeline): added in v0.1.106, remove after 2027-01-12.
         selectiveAgentTimeline: z.boolean().optional(),
+        // COMPAT(canonicalSubmittedPrompts): added in v0.2.6, remove gate after 2027-01-30.
+        canonicalSubmittedPrompts: z.boolean().optional(),
+        // COMPAT(agentTurnIdentity): accept peers that observed pre-release v0.2.6 through 2027-01-31.
+        agentTurnIdentity: z.boolean().optional(),
         // COMPAT(stableProjectIdentity): added in v0.1.109, remove gate after 2027-01-15.
         stableProjectIdentity: z.boolean().optional(),
         // COMPAT(hostTools): added in v0.1.X, drop the gate when floor >= v0.1.X.
@@ -3709,7 +3771,25 @@ export const FetchAgentTimelineResponseMessageSchema = z.object({
     endCursor: AgentTimelineCursorSchema.nullable(),
     hasOlder: z.boolean(),
     hasNewer: z.boolean(),
+    mergeWindow: z.boolean().optional(),
     entries: z.array(AgentTimelineEntryPayloadSchema),
+    error: z.string().nullable(),
+  }),
+});
+
+export const AgentTimelineListPromptsResponseMessageSchema = z.object({
+  type: z.literal("agent.timeline.list_prompts.response"),
+  payload: z.object({
+    requestId: z.string(),
+    agentId: z.string(),
+    epoch: z.string(),
+    prompts: z.array(
+      z.object({
+        seq: z.number().int().nonnegative(),
+        timestamp: z.string(),
+        preview: z.string(),
+      }),
+    ),
     error: z.string().nullable(),
   }),
 });
@@ -4122,6 +4202,13 @@ const CheckoutStatusCommonSchema = z.object({
   cwd: z.string(),
   error: CheckoutErrorSchema.nullable(),
   requestId: z.string(),
+  // The full ref currentBranch tracks, as git resolves `<branch>@{upstream}`:
+  // "refs/remotes/origin/main", "refs/remotes/upstream/main" on a fork, or a
+  // "refs/heads/..." ref for a branch tracking a local branch. Null when there is no
+  // upstream. Clients use it verbatim — the remote is not necessarily origin and the
+  // upstream branch name is not necessarily currentBranch, so composing one is wrong.
+  // aheadOfOrigin/behindOfOrigin are measured against exactly this ref.
+  upstreamRef: z.string().nullable().optional(),
 });
 
 const CheckoutStatusNotGitSchema = CheckoutStatusCommonSchema.extend({
@@ -4759,6 +4846,8 @@ export const BranchSuggestionsResponseSchema = z.object({
           committerDate: z.number(),
           hasLocal: z.boolean().optional(),
           hasRemote: z.boolean().optional(),
+          localAhead: z.number().int().nonnegative().optional(),
+          localBehind: z.number().int().nonnegative().optional(),
         }),
       )
       .optional(),
@@ -5009,6 +5098,9 @@ export const GetProvidersSnapshotResponseMessageSchema = z.object({
   type: z.literal("get_providers_snapshot_response"),
   payload: z.object({
     entries: z.array(ProviderSnapshotEntrySchema),
+    compactSnapshot: CompactProviderSnapshotSchema.optional(),
+    snapshotHash: z.string().optional(),
+    notModified: z.boolean().optional(),
     generatedAt: z.string(),
     requestId: z.string(),
   }),
@@ -5020,6 +5112,8 @@ export const ProvidersSnapshotUpdateMessageSchema = z.object({
   payload: z.object({
     cwd: z.string().optional(),
     entries: z.array(ProviderSnapshotEntrySchema),
+    compactSnapshot: CompactProviderSnapshotSchema.optional(),
+    snapshotHash: z.string().optional(),
     generatedAt: z.string(),
   }),
 });
@@ -5624,6 +5718,7 @@ export const SessionOutboundMessageSchema = z.discriminatedUnion("type", [
   ArchiveWorkspaceResponseMessageSchema,
   FetchAgentResponseMessageSchema,
   FetchAgentTimelineResponseMessageSchema,
+  AgentTimelineListPromptsResponseMessageSchema,
   ProviderSubagentListResponseMessageSchema,
   ProviderSubagentTimelineResponseMessageSchema,
   ProviderSubagentUpdateMessageSchema,
@@ -5859,6 +5954,9 @@ export type ArchiveWorkspaceResponseMessage = z.infer<typeof ArchiveWorkspaceRes
 export type FetchAgentResponseMessage = z.infer<typeof FetchAgentResponseMessageSchema>;
 export type FetchAgentTimelineResponseMessage = z.infer<
   typeof FetchAgentTimelineResponseMessageSchema
+>;
+export type AgentTimelineListPromptsResponseMessage = z.infer<
+  typeof AgentTimelineListPromptsResponseMessageSchema
 >;
 export type AgentForkContextResponseMessage = z.infer<typeof AgentForkContextResponseMessageSchema>;
 export type CancelAgentResponseMessage = z.infer<typeof CancelAgentResponseMessageSchema>;
@@ -6236,6 +6334,7 @@ export const WSHelloMessageSchema = z.object({
       [CLIENT_CAPS.terminalReflowableSnapshot]: z.boolean().optional(),
       [CLIENT_CAPS.providerSubagents]: z.boolean().optional(),
       [CLIENT_CAPS.projectUpdates]: z.boolean().optional(),
+      [CLIENT_CAPS.compactProviderSnapshots]: z.boolean().optional(),
       [CLIENT_CAPS.browserHost]: BrowserAutomationHostCapabilitySchema.optional(),
     })
     .passthrough()
