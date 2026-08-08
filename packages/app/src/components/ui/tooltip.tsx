@@ -18,7 +18,6 @@ import {
   Platform,
   Modal,
   Pressable,
-  StatusBar,
   View,
   type PressableProps,
   type StyleProp,
@@ -29,6 +28,7 @@ import { StyleSheet } from "react-native-unistyles";
 import { useIsCompactFormFactor } from "@/constants/layout";
 import { FloatingSurface } from "@/components/ui/floating";
 import { isWeb } from "@/constants/platform";
+import { useStatusBarHeight } from "@/hooks/use-status-bar-height";
 import { getOverlayRoot, OVERLAY_Z } from "@/lib/overlay-root";
 
 type Side = "top" | "bottom" | "left" | "right";
@@ -450,6 +450,8 @@ export function TooltipContent({
   const [contentSize, setContentSize] = useState<{ width: number; height: number } | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
 
+  const statusBarHeight = useStatusBarHeight();
+
   useEffect(() => {
     if (!ctx.open || !ctx.enabled || !ctx.triggerRef.current) {
       setTriggerRect(null);
@@ -458,7 +460,6 @@ export function TooltipContent({
       return () => {};
     }
 
-    const statusBarHeight = Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0;
     let cancelled = false;
 
     void measureElement(ctx.triggerRef.current).then((rect) => {
@@ -469,7 +470,7 @@ export function TooltipContent({
     return () => {
       cancelled = true;
     };
-  }, [ctx.enabled, ctx.open, ctx.triggerRef]);
+  }, [ctx.enabled, ctx.open, ctx.triggerRef, statusBarHeight]);
 
   useEffect(() => {
     if (!triggerRect || !contentSize) return;

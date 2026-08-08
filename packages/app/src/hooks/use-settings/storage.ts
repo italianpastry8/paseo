@@ -26,6 +26,7 @@ export type WorkspaceTitleSource = "title" | "branch";
 /** What a sidebar workspace row shows in the space to the right of its title. */
 export type SidebarWorkspaceTrailing = "diff" | "timestamp" | "none";
 export type ToolCallDetailLevel = "overview" | "detailed";
+export type DisplayDensity = "comfortable" | "compact" | "ultra";
 
 const VALID_THEMES = new Set<string>([...Object.keys(THEME_TO_UNISTYLES), "auto"]);
 const VALID_SERVICE_URL_BEHAVIORS = new Set<ServiceUrlBehavior>(["ask", "in-app", "external"]);
@@ -36,6 +37,7 @@ const VALID_SIDEBAR_WORKSPACE_TRAILINGS = new Set<SidebarWorkspaceTrailing>([
   "none",
 ]);
 const VALID_TOOL_CALL_DETAIL_LEVELS = new Set<ToolCallDetailLevel>(["overview", "detailed"]);
+const VALID_DISPLAY_DENSITIES = new Set<DisplayDensity>(["comfortable", "compact", "ultra"]);
 export const DEFAULT_TERMINAL_SCROLLBACK_LINES = 10_000;
 export const MIN_TERMINAL_SCROLLBACK_LINES = 0;
 export const MAX_TERMINAL_SCROLLBACK_LINES = 1_000_000;
@@ -67,6 +69,8 @@ export interface AppSettings {
   toolCallDetailLevel: ToolCallDetailLevel;
   chatOutlineEnabled: boolean;
   vimKeybindings: boolean;
+  displayDensity: DisplayDensity;
+  immersiveStatusBar: boolean;
 }
 
 export interface Settings extends AppSettings {
@@ -103,6 +107,8 @@ export const DEFAULT_CLIENT_SETTINGS: AppSettings = {
   toolCallDetailLevel: "detailed",
   chatOutlineEnabled: true,
   vimKeybindings: false,
+  displayDensity: "comfortable",
+  immersiveStatusBar: false,
 };
 
 export const DEFAULT_APP_SETTINGS: Settings = {
@@ -243,6 +249,9 @@ function pickBooleanAppSettings(stored: StoredAppSettings): Partial<AppSettings>
   if (typeof stored.chatOutlineEnabled === "boolean") {
     result.chatOutlineEnabled = stored.chatOutlineEnabled;
   }
+  if (typeof stored.immersiveStatusBar === "boolean") {
+    result.immersiveStatusBar = stored.immersiveStatusBar;
+  }
   return result;
 }
 
@@ -279,6 +288,12 @@ function pickEnumAppSettings(stored: StoredAppSettings): Partial<AppSettings> {
     VALID_SIDEBAR_WORKSPACE_TRAILINGS.has(stored.sidebarWorkspaceTrailing)
   ) {
     result.sidebarWorkspaceTrailing = stored.sidebarWorkspaceTrailing;
+  }
+  if (
+    typeof stored.displayDensity === "string" &&
+    VALID_DISPLAY_DENSITIES.has(stored.displayDensity)
+  ) {
+    result.displayDensity = stored.displayDensity;
   }
   return result;
 }

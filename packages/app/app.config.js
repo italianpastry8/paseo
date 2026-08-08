@@ -3,6 +3,7 @@ const path = require("node:path");
 const pkg = require("./package.json");
 const withAndroidProfileable = require("./plugins/with-android-profileable");
 const withFdroidAutolinking = require("./plugins/with-fdroid-autolinking");
+const withAndroidFoldableConfigChanges = require("./plugins/with-android-foldable-config-changes");
 const { getNativeReleaseVersion } = require("./native-release-version");
 const appVariant = process.env.APP_VARIANT ?? "production";
 const isFdroidBuild = process.env.PASEO_FDROID_BUILD === "1";
@@ -172,6 +173,7 @@ export default {
         },
       ],
       ...buildProfile.fdroidPlugins,
+      withAndroidFoldableConfigChanges,
       ...(isProfileBuild ? [withAndroidProfileable] : []),
     ],
     experiments: {

@@ -1105,6 +1105,209 @@ test("resumeConnection is a no-op on a disposed client", async () => {
   expect(client.getConnectionState().status).toBe("disposed");
 });
 
+test("notifyNetworkChanged while connected disposes transport and reconnects with zero delay", async () => {
+  useHeartbeatClock();
+  try {
+    const logger = createMockLogger();
+    const first = createMockTransport();
+    const second = createMockTransport();
+    const transports = [first, second];
+    let transportIndex = 0;
+    const firstCloseSpy = vi.spyOn(first.transport, "close");
+
+    const client = new DaemonClient({
+      url: "ws://test",
+      clientId: "clsk_unit_test",
+      logger,
+      reconnect: { enabled: true, baseDelayMs: 60_000, maxDelayMs: 60_000 },
+      transportFactory: () => {
+        const next = transports[Math.min(transportIndex, transports.length - 1)];
+        transportIndex += 1;
+        return next.transport;
+      },
+    });
+    clients.push(client);
+
+    const connectPromise = client.connect();
+    first.triggerOpen();
+    await connectPromise;
+    expect(client.getConnectionState().status).toBe("connected");
+
+    client.notifyNetworkChanged();
+    expect(firstCloseSpy).toHaveBeenCalledWith(1001, "Network changed");
+    expect(client.getConnectionState().status).toBe("connecting");
+    expect(transportIndex).toBe(2);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("notifyNetworkChanged while connecting aborts in-flight attempt and starts a fresh one", async () => {
+  useHeartbeatClock();
+  try {
+    const logger = createMockLogger();
+    const first = createMockTransport();
+    const second = createMockTransport();
+    const third = createMockTransport();
+    const transports = [first, second, third];
+    let transportIndex = 0;
+
+    const client = new DaemonClient({
+      url: "ws://test",
+      clientId: "clsk_unit_test",
+      logger,
+      reconnect: { enabled: true, baseDelayMs: 60_000, maxDelayMs: 60_000 },
+      transportFactory: () => {
+        const next = transports[Math.min(transportIndex, transports.length - 1)];
+        transportIndex += 1;
+        return next.transport;
+      },
+    });
+    clients.push(client);
+
+    const connectPromise = client.connect();
+    first.triggerOpen();
+    await connectPromise;
+
+    first.triggerClose({ code: 1006 });
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(client.getConnectionState().status).toBe("connecting");
+    expect(transportIndex).toBe(2);
+
+    const transportCountBefore = transportIndex;
+    client.notifyNetworkChanged();
+    expect(transportIndex).toBe(transportCountBefore + 1);
+    expect(client.getConnectionState().status).toBe("connecting");
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("notifyNetworkChanged while disconnected cancels backoff and reconnects immediately", async () => {
+  useHeartbeatClock();
+  try {
+    const logger = createMockLogger();
+    const first = createMockTransport();
+    const second = createMockTransport();
+    const transports = [first, second];
+    let transportIndex = 0;
+
+    const client = new DaemonClient({
+      url: "ws://test",
+      clientId: "clsk_unit_test",
+      logger,
+      reconnect: { enabled: true, baseDelayMs: 60_000, maxDelayMs: 60_000 },
+      transportFactory: () => {
+        const next = transports[Math.min(transportIndex, transports.length - 1)];
+        transportIndex += 1;
+        return next.transport;
+      },
+    });
+    clients.push(client);
+
+    const connectPromise = client.connect();
+    first.triggerOpen();
+    await connectPromise;
+
+    first.triggerClose({ code: 1006 });
+    expect(client.getConnectionState().status).toBe("disconnected");
+
+    client.notifyNetworkChanged();
+    expect(client.getConnectionState().status).toBe("connecting");
+    expect(transportIndex).toBe(2);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("notifyNetworkChanged on a disposed client is a no-op", async () => {
+  const logger = createMockLogger();
+  const mock = createMockTransport();
+  const closeSpy = vi.spyOn(mock.transport, "close");
+
+  const client = new DaemonClient({
+    url: "ws://test",
+    clientId: "clsk_unit_test",
+    logger,
+    reconnect: { enabled: false },
+    transportFactory: () => mock.transport,
+  });
+  clients.push(client);
+
+  const connectPromise = client.connect();
+  mock.triggerOpen();
+  await connectPromise;
+
+  await client.close();
+  expect(client.getConnectionState().status).toBe("disposed");
+
+  closeSpy.mockClear();
+  client.notifyNetworkChanged();
+  expect(client.getConnectionState().status).toBe("disposed");
+  expect(closeSpy).not.toHaveBeenCalled();
+});
+
+test("resumeConnection while connected remains a no-op (connection-resume spec guard)", async () => {
+  const logger = createMockLogger();
+  const mock = createMockTransport();
+  const closeSpy = vi.spyOn(mock.transport, "close");
+
+  const client = new DaemonClient({
+    url: "ws://test",
+    clientId: "clsk_unit_test",
+    logger,
+    reconnect: { enabled: true },
+    transportFactory: () => mock.transport,
+  });
+  clients.push(client);
+
+  const connectPromise = client.connect();
+  mock.triggerOpen();
+  await connectPromise;
+  expect(client.getConnectionState().status).toBe("connected");
+
+  client.resumeConnection();
+  expect(client.getConnectionState().status).toBe("connected");
+  expect(closeSpy).not.toHaveBeenCalled();
+});
+
+test("notifyNetworkChanged sends a WS close frame with code 1001 on the old transport", async () => {
+  useHeartbeatClock();
+  try {
+    const logger = createMockLogger();
+    const first = createMockTransport();
+    const second = createMockTransport();
+    const transports = [first, second];
+    let transportIndex = 0;
+    const firstCloseSpy = vi.spyOn(first.transport, "close");
+
+    const client = new DaemonClient({
+      url: "ws://test",
+      clientId: "clsk_unit_test",
+      logger,
+      reconnect: { enabled: true, baseDelayMs: 60_000, maxDelayMs: 60_000 },
+      transportFactory: () => {
+        const next = transports[Math.min(transportIndex, transports.length - 1)];
+        transportIndex += 1;
+        return next.transport;
+      },
+    });
+    clients.push(client);
+
+    const connectPromise = client.connect();
+    first.triggerOpen();
+    await connectPromise;
+
+    client.notifyNetworkChanged();
+    expect(firstCloseSpy).toHaveBeenCalledTimes(1);
+    const [code, reason] = firstCloseSpy.mock.calls[0];
+    expect(code).toBe(1001);
+    expect(reason).toBe("Network changed");
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 test("keeps the transport connected when a session RPC ping times out", async () => {
   const logger = createMockLogger();
   const mock = createMockTransport();

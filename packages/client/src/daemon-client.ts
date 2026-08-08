@@ -1489,14 +1489,44 @@ export class DaemonClient {
     if (this.connectionState.status !== "disconnected") {
       return;
     }
+    this.reconnectNow("App resumed");
+  }
+
+  /**
+   * Called when the OS reports a network change (interface switch, connectivity
+   * regain) while the app is in the foreground. Unlike resumeConnection, this
+   * proactively disposes the current transport — even if it reports connected —
+   * because a TCP socket that looks alive often is not after a network switch.
+   * Sends a clean WS close frame so the daemon releases the lease immediately.
+   */
+  notifyNetworkChanged(): void {
+    if (this.connectionState.status === "disposed") {
+      return;
+    }
+    this.reconnectNow("Network changed");
+  }
+
+  /**
+   * Shared terminal action for zero-backoff reconnect triggers. Stops the
+   * liveness heartbeat, disposes the current transport (sending a WS close
+   * frame so the daemon releases its application-socket lease), clears any
+   * pending reconnect timer, resets the attempt counter, and starts a fresh
+   * connection attempt immediately.
+   */
+  private reconnectNow(reason: string): void {
     if (!this.shouldReconnect) {
       this.shouldReconnect = true;
     }
+    this.stopLivenessHeartbeat();
+    this.disposeTransport(1001, reason);
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
     this.reconnectAttempt = 0;
+    // Reset to idle so attemptConnect() does not short-circuit on a stale
+    // connecting/connected status from the transport we just disposed.
+    this.updateConnectionState({ status: "idle" });
     this.attemptConnect();
   }
 

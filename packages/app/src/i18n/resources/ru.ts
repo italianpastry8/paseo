@@ -1896,6 +1896,20 @@ export const ru: TranslationResources = {
       detailLevel: {
         title: "Уровень детализации",
       },
+      displayDensity: {
+        label: "Плотность отображения",
+        description: "Уплотняет отступы, не меняя размер текста",
+        accessibilityLabel: "Выбор плотности отображения ({{value}})",
+        options: {
+          comfortable: "Комфортная",
+          compact: "Компактная",
+          ultra: "Сверхкомпактная",
+        },
+      },
+      immersiveStatusBar: {
+        label: "Скрыть строку состояния",
+        description: "Скрывает строку состояния и показывает контент во весь экран (Android)",
+      },
       chatOutline: {
         title: "Структура чата",
         description: "Показывать структуру для перехода между запросами",

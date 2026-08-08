@@ -1870,6 +1870,20 @@ export const en = {
       detailLevel: {
         title: "Detail level",
       },
+      displayDensity: {
+        label: "Display density",
+        description: "Tightens spacing and padding without changing text size",
+        accessibilityLabel: "Select display density ({{value}})",
+        options: {
+          comfortable: "Comfortable",
+          compact: "Compact",
+          ultra: "Ultra compact",
+        },
+      },
+      immersiveStatusBar: {
+        label: "Hide status bar",
+        description: "Hide the status bar and show content edge-to-edge (Android)",
+      },
       chatOutline: {
         title: "Chat outline",
         description: "Show an outline for jumping between prompts",

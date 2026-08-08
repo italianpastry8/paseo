@@ -149,6 +149,15 @@ The EAS `production-apk` profile uses the large Android resource class. Release 
 
 Keep `react` and `react-dom` pinned to the React version embedded by the current `react-native` release. React Native `0.81.x` embeds `react-native-renderer` `19.1.0`, so `packages/app` must use React `19.1.0`. Bumping React to a newer patch can build successfully but crash at JS startup on Android with `Incompatible React versions`, leaving the app on the native splash screen.
 
+## Foldables
+
+`MainActivity` needs `smallestScreenSize` in `android:configChanges`, added by `plugins/with-android-foldable-config-changes.js`. Without it, fold/unfold changes smallestWidth (Find N2: 384dp ↔ 751dp) and Android destroys and recreates the activity — the RN tree remounts and chat scroll position resets. The `android/` directory is a gitignored prebuild artifact: change the plugin and re-run prebuild, never edit the generated manifest.
+
+Related foldable behavior:
+
+- **Immersive status bar** (Settings → Appearance → Hide status bar, Android only): the local module `modules/immersive-status-bar/` wraps `WindowInsetsControllerCompat` with `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` — hidden by default, top-edge swipe reveals it transiently. Menu/tooltip anchors must use `src/hooks/use-status-bar-height.ts` (live safe-area inset), never `StatusBar.currentHeight`, which keeps reporting the physical height when the bar is hidden.
+- **Adaptive rotation**: `src/app/_layout.tsx` locks `PORTRAIT_UP` below 600dp smallest width and unlocks `ALL` at/above it via `expo-screen-orientation`. The manifest stays `portrait` so cold start on phones is unchanged; the runtime lock overrides it on unfolded foldables and tablets.
+
 ## Screenshots
 
 ```bash

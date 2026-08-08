@@ -339,6 +339,7 @@ export interface PaseoClient {
   close(): Promise<void>;
   ensureConnected(): void;
   resumeConnection(): void;
+  notifyNetworkChanged(): void;
   getConnectionState(): ConnectionState;
 }
 
@@ -404,6 +405,7 @@ export function createPaseoClient(config: PaseoClientConfig): PaseoClient {
     close: () => daemonClient.close(),
     ensureConnected: () => daemonClient.ensureConnected(),
     resumeConnection: () => daemonClient.resumeConnection(),
+    notifyNetworkChanged: () => daemonClient.notifyNetworkChanged(),
     getConnectionState: () => daemonClient.getConnectionState(),
   };
 }

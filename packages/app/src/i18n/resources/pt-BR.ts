@@ -1891,6 +1891,20 @@ export const ptBR: TranslationResources = {
       detailLevel: {
         title: "Nível de detalhe",
       },
+      displayDensity: {
+        label: "Densidade de exibição",
+        description: "Compacta o espaçamento sem alterar o tamanho do texto",
+        accessibilityLabel: "Selecione a densidade de exibição ({{value}})",
+        options: {
+          comfortable: "Confortável",
+          compact: "Compacta",
+          ultra: "Ultracompacta",
+        },
+      },
+      immersiveStatusBar: {
+        label: "Ocultar barra de status",
+        description: "Oculta a barra de status e mostra o conteúdo em tela cheia (Android)",
+      },
       chatOutline: {
         title: "Estrutura do chat",
         description: "Mostrar uma estrutura para navegar entre prompts",

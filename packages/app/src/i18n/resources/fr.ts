@@ -1910,6 +1910,20 @@ export const fr: TranslationResources = {
       detailLevel: {
         title: "Niveau de détail",
       },
+      displayDensity: {
+        label: "Densité d'affichage",
+        description: "Resserre les espacements sans changer la taille du texte",
+        accessibilityLabel: "Sélectionnez la densité d'affichage ({{value}})",
+        options: {
+          comfortable: "Confortable",
+          compact: "Compact",
+          ultra: "Ultra compact",
+        },
+      },
+      immersiveStatusBar: {
+        label: "Masquer la barre d'état",
+        description: "Masque la barre d'état et affiche le contenu en plein écran (Android)",
+      },
       chatOutline: {
         title: "Plan de la discussion",
         description: "Afficher un plan pour passer d’une requête à l’autre",

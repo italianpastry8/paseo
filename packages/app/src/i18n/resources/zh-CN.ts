@@ -1839,6 +1839,20 @@ export const zhCN: TranslationResources = {
       detailLevel: {
         title: "详细程度",
       },
+      displayDensity: {
+        label: "显示密度",
+        description: "收紧间距与留白，不改变字号",
+        accessibilityLabel: "选择显示密度（{{value}}）",
+        options: {
+          comfortable: "舒适",
+          compact: "紧凑",
+          ultra: "超紧凑",
+        },
+      },
+      immersiveStatusBar: {
+        label: "隐藏状态栏",
+        description: "隐藏状态栏并让内容全屏显示（仅 Android）",
+      },
       chatOutline: {
         title: "聊天大纲",
         description: "显示用于在提示词之间跳转的大纲",

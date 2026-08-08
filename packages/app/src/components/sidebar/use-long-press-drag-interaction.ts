@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
-import { Platform, StatusBar, type GestureResponderEvent } from "react-native";
+import { type GestureResponderEvent } from "react-native";
 import * as Haptics from "expo-haptics";
 import { isWeb as platformIsWeb } from "@/constants/platform";
+import { useStatusBarHeight } from "@/hooks/use-status-bar-height";
 import { decideLongPressMove } from "@/utils/sidebar-gesture-arbitration";
 import type { useContextMenu } from "@/components/ui/context-menu";
 
@@ -19,6 +20,7 @@ export function useLongPressDragInteraction(input: {
   const touchCurrentRef = useRef<{ x: number; y: number } | null>(null);
   const dragArmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const contextMenuTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const statusBarHeight = useStatusBarHeight();
 
   const clearTimers = useCallback(() => {
     if (dragArmTimerRef.current) {
@@ -35,7 +37,6 @@ export function useLongPressDragInteraction(input: {
     if (!input.menuController || !touchStartRef.current) {
       return;
     }
-    const statusBarHeight = Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0;
     input.menuController.setAnchorRect({
       x: touchStartRef.current.x,
       y: touchStartRef.current.y + statusBarHeight,
@@ -45,7 +46,7 @@ export function useLongPressDragInteraction(input: {
     input.menuController.setOpen(true);
     menuOpenedRef.current = true;
     didLongPressRef.current = true;
-  }, [input.menuController]);
+  }, [input.menuController, statusBarHeight]);
 
   const handleLongPress = useCallback(() => {
     // Manual timers own long-press behavior on mobile.

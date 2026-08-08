@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
-import { Text, TextInput, View, type PressableStateCallbackType } from "react-native";
+import { Platform, Text, TextInput, View, type PressableStateCallbackType } from "react-native";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import { ChevronDown, Monitor, Moon, Sun } from "lucide-react-native";
 import {
@@ -305,6 +305,99 @@ function ToolCallDetailRow({ value, onChange }: ToolCallDetailRowProps) {
   );
 }
 
+const DISPLAY_DENSITIES: readonly AppSettings["displayDensity"][] = [
+  "comfortable",
+  "compact",
+  "ultra",
+];
+
+function getDisplayDensityLabel(t: TFunction, value: AppSettings["displayDensity"]): string {
+  return t(`settings.appearance.displayDensity.options.${value}`);
+}
+
+interface DisplayDensityMenuItemProps {
+  value: AppSettings["displayDensity"];
+  selected: boolean;
+  onChange: (value: AppSettings["displayDensity"]) => void;
+}
+
+function DisplayDensityMenuItem({ value, selected, onChange }: DisplayDensityMenuItemProps) {
+  const { t } = useTranslation();
+  const handleSelect = useCallback(() => onChange(value), [onChange, value]);
+  return (
+    <DropdownMenuItem selected={selected} onSelect={handleSelect}>
+      {getDisplayDensityLabel(t, value)}
+    </DropdownMenuItem>
+  );
+}
+
+interface DisplayDensityRowProps {
+  value: AppSettings["displayDensity"];
+  onChange: (value: AppSettings["displayDensity"]) => void;
+}
+
+function DisplayDensityRow({ value, onChange }: DisplayDensityRowProps) {
+  const { t } = useTranslation();
+  const selectedLabel = getDisplayDensityLabel(t, value);
+  return (
+    <View style={[settingsStyles.row, settingsStyles.rowBorder]}>
+      <View style={settingsStyles.rowContent}>
+        <Text style={settingsStyles.rowTitle}>{t("settings.appearance.displayDensity.label")}</Text>
+        <Text style={settingsStyles.rowHint}>
+          {t("settings.appearance.displayDensity.description")}
+        </Text>
+      </View>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          style={dropdownTriggerStyle}
+          accessibilityLabel={t("settings.appearance.displayDensity.accessibilityLabel", {
+            value: selectedLabel,
+          })}
+        >
+          <Text style={styles.triggerText}>{selectedLabel}</Text>
+          <ThemedChevronDown size={ICON_SIZE.sm} uniProps={mutedColorMapping} />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="bottom" align="end" width={200}>
+          {DISPLAY_DENSITIES.map((option) => (
+            <DisplayDensityMenuItem
+              key={option}
+              value={option}
+              selected={value === option}
+              onChange={onChange}
+            />
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </View>
+  );
+}
+
+interface ImmersiveStatusBarRowProps {
+  value: boolean;
+  onChange: (value: boolean) => void;
+}
+
+function ImmersiveStatusBarRow({ value, onChange }: ImmersiveStatusBarRowProps) {
+  const { t } = useTranslation();
+  return (
+    <View style={[settingsStyles.row, settingsStyles.rowBorder]}>
+      <View style={settingsStyles.rowContent}>
+        <Text style={settingsStyles.rowTitle}>
+          {t("settings.appearance.immersiveStatusBar.label")}
+        </Text>
+        <Text style={settingsStyles.rowHint}>
+          {t("settings.appearance.immersiveStatusBar.description")}
+        </Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onChange}
+        accessibilityLabel={t("settings.appearance.immersiveStatusBar.label")}
+      />
+    </View>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Fonts: family text fields + numeric size fields (commit on blur/submit)
 // ---------------------------------------------------------------------------
@@ -527,6 +620,20 @@ export function AppearanceSection() {
     [updateSettings],
   );
 
+  const handleDisplayDensityChange = useCallback(
+    (displayDensity: AppSettings["displayDensity"]) => {
+      void updateSettings({ displayDensity });
+    },
+    [updateSettings],
+  );
+
+  const handleImmersiveStatusBarChange = useCallback(
+    (immersiveStatusBar: boolean) => {
+      void updateSettings({ immersiveStatusBar });
+    },
+    [updateSettings],
+  );
+
   const handleChatOutlineChange = useCallback(
     (chatOutlineEnabled: boolean) => {
       void updateSettings({ chatOutlineEnabled });
@@ -624,6 +731,16 @@ export function AppearanceSection() {
             value={settings.toolCallDetailLevel}
             onChange={handleToolCallDetailLevelChange}
           />
+          <DisplayDensityRow
+            value={settings.displayDensity}
+            onChange={handleDisplayDensityChange}
+          />
+          {Platform.OS === "android" ? (
+            <ImmersiveStatusBarRow
+              value={settings.immersiveStatusBar}
+              onChange={handleImmersiveStatusBarChange}
+            />
+          ) : null}
           {!isNative ? (
             <ChatOutlineRow
               value={settings.chatOutlineEnabled}

@@ -6,7 +6,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  StatusBar,
   View,
   type StyleProp,
   type ViewStyle,
@@ -15,6 +14,7 @@ import { Keyframe, runOnJS } from "react-native-reanimated";
 import { StyleSheet } from "react-native-unistyles";
 import { FloatingScrollView, FloatingSurface } from "@/components/ui/floating";
 import { isWeb } from "@/constants/platform";
+import { useStatusBarHeight } from "@/hooks/use-status-bar-height";
 import {
   getOverlayRoot,
   OverlayLayerProvider,
@@ -135,6 +135,8 @@ export function useAnchoredPosition({
     };
   }, [contentSize, scrollable, maxHeight]);
 
+  const statusBarHeight = useStatusBarHeight();
+
   useEffect(() => {
     if (!open) {
       setTriggerRect(null);
@@ -153,9 +155,8 @@ export function useAnchoredPosition({
       return undefined;
     }
 
-    // Capture status bar height synchronously before async measurement, so it cannot change
-    // or read back null between the measure call and its resolution.
-    const statusBarHeight = Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0;
+    // Captured at render before async measurement, so it cannot change or read back
+    // null between the measure call and its resolution.
     let cancelled = false;
 
     void measureElement(anchorRef.current).then((rect) => {
@@ -169,7 +170,7 @@ export function useAnchoredPosition({
     return () => {
       cancelled = true;
     };
-  }, [anchorRect, anchorRef, open]);
+  }, [anchorRect, anchorRef, open, statusBarHeight]);
 
   useEffect(() => {
     if (!triggerRect || !visibleContentSize) return;

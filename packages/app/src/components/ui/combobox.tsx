@@ -16,7 +16,6 @@ import {
   TextInput,
   ScrollView,
   Platform,
-  StatusBar,
   useWindowDimensions,
   type LayoutChangeEvent,
   type PressableStateCallbackType,
@@ -63,6 +62,7 @@ import {
 } from "@/components/adaptive-modal-sheet";
 import { FloatingSurface } from "@/components/ui/floating";
 import { useDismissKeyboardOnOpen } from "@/components/ui/keyboard-dismiss";
+import { getStatusBarHeight } from "@/hooks/use-status-bar-height";
 import {
   getOverlayRoot,
   OverlayLayerProvider,
@@ -818,7 +818,7 @@ function runIfSubmitSearch(
 function computeCollisionPadding(): number {
   const basePadding = 16;
   if (Platform.OS !== "android") return basePadding;
-  const statusBarHeight = StatusBar.currentHeight ?? 0;
+  const statusBarHeight = getStatusBarHeight();
   return Math.max(basePadding, statusBarHeight + basePadding);
 }
 

@@ -2226,6 +2226,12 @@ export class HostRuntimeStore {
     }
   }
 
+  notifyAllHostsNetworkChanged(): void {
+    for (const controller of this.controllers.values()) {
+      controller.getClient()?.notifyNetworkChanged();
+    }
+  }
+
   runProbeCycleNow(serverId?: string): Promise<void> {
     if (serverId) {
       return this.controllers.get(serverId)?.runProbeCycleNow() ?? Promise.resolve();

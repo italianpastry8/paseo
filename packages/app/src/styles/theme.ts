@@ -571,12 +571,11 @@ export const DEFAULT_MONO_FONT_STACK: string = Platform.select({
   web: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
 });
 
-// `fontSize`, `fontFamily`, and `lineHeight` are deliberately widened to plain
-// `number`/`string` (not narrowed by `as const`) so the appearance updater can patch
-// them at runtime via `UnistylesRuntime.updateTheme`. The remaining tokens keep their
-// literal types.
+// `fontSize`, `fontFamily`, `lineHeight`, and `spacing` are deliberately widened to plain
+// `number` (not narrowed by `as const`) so the appearance updater can patch them at runtime
+// via `UnistylesRuntime.updateTheme`. The remaining tokens keep their literal types.
 interface CommonTheme {
-  spacing: typeof SPACING;
+  spacing: Record<keyof typeof SPACING, number>;
   fontSize: Record<keyof typeof FONT_SIZE, number>;
   fontFamily: { ui: string; mono: string };
   lineHeight: Record<keyof typeof LINE_HEIGHT, number>;

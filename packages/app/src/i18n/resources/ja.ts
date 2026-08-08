@@ -1875,6 +1875,20 @@ export const ja: TranslationResources = {
       detailLevel: {
         title: "詳細レベル",
       },
+      displayDensity: {
+        label: "表示密度",
+        description: "間隔と余白を詰めます（文字サイズは変わりません）",
+        accessibilityLabel: "表示密度を選択（{{value}}）",
+        options: {
+          comfortable: "ゆったり",
+          compact: "コンパクト",
+          ultra: "超コンパクト",
+        },
+      },
+      immersiveStatusBar: {
+        label: "ステータスバーを非表示",
+        description: "ステータスバーを非表示にしてコンテンツを端まで表示します（Android）",
+      },
       chatOutline: {
         title: "チャットのアウトライン",
         description: "プロンプト間を移動するためのアウトラインを表示します",

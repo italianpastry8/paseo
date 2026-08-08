@@ -1860,6 +1860,20 @@ export const ar: TranslationResources = {
       detailLevel: {
         title: "مستوى التفاصيل",
       },
+      displayDensity: {
+        label: "كثافة العرض",
+        description: "يُحكم التباعد والهوامش دون تغيير حجم النص",
+        accessibilityLabel: "اختر كثافة العرض ({{value}})",
+        options: {
+          comfortable: "مريح",
+          compact: "مضغوط",
+          ultra: "فائق الإحكام",
+        },
+      },
+      immersiveStatusBar: {
+        label: "إخفاء شريط الحالة",
+        description: "يخفي شريط الحالة ويعرض المحتوى بملء الشاشة (Android)",
+      },
       chatOutline: {
         title: "مخطط المحادثة",
         description: "عرض مخطط للتنقل بين المطالبات",

@@ -6,8 +6,6 @@ import {
   type Ref,
 } from "react";
 import {
-  Platform,
-  StatusBar,
   View,
   type GestureResponderEvent,
   type PressableProps,
@@ -28,6 +26,7 @@ import {
   type MenuTriggerState,
 } from "@/components/ui/menu";
 import { PressHighlight } from "@/components/ui/press-highlight";
+import { useStatusBarHeight } from "@/hooks/use-status-bar-height";
 
 /**
  * A menu opened by a long press or a right click, anchored to the point of the gesture rather
@@ -122,13 +121,14 @@ export function ContextMenuTrigger({
 
   const shouldEnableOnThisPlatform = enabled && (isWeb ? enabledOnWeb : enabledOnMobile);
 
+  const statusBarHeight = useStatusBarHeight();
+
   const openAtEvent = useCallback(
     (event: unknown) => {
       if (!shouldEnableOnThisPlatform || disabled) return;
       const point = coerceEventPoint(event);
       if (!point) return;
 
-      const statusBarHeight = Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0;
       ctx.setAnchorRect({
         x: point.pageX,
         y: point.pageY + statusBarHeight,
@@ -137,7 +137,7 @@ export function ContextMenuTrigger({
       });
       ctx.setOpen(true);
     },
-    [ctx, disabled, shouldEnableOnThisPlatform],
+    [ctx, disabled, shouldEnableOnThisPlatform, statusBarHeight],
   );
 
   const handleRef = useCallback(

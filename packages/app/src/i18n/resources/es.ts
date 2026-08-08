@@ -1907,6 +1907,21 @@ export const es: TranslationResources = {
       detailLevel: {
         title: "Nivel de detalle",
       },
+      displayDensity: {
+        label: "Densidad de visualización",
+        description: "Compacta los espacios sin cambiar el tamaño del texto",
+        accessibilityLabel: "Seleccione la densidad de visualización ({{value}})",
+        options: {
+          comfortable: "Cómoda",
+          compact: "Compacta",
+          ultra: "Ultracompacta",
+        },
+      },
+      immersiveStatusBar: {
+        label: "Ocultar barra de estado",
+        description:
+          "Oculta la barra de estado y muestra el contenido a pantalla completa (Android)",
+      },
       chatOutline: {
         title: "Esquema del chat",
         description: "Muestra un esquema para saltar entre instrucciones",

@@ -1871,6 +1871,20 @@ export const ko: TranslationResources = {
       detailLevel: {
         title: "세부 수준",
       },
+      displayDensity: {
+        label: "표시 밀도",
+        description: "간격과 여백을 좁힙니다(글자 크기는 변경되지 않음)",
+        accessibilityLabel: "표시 밀도 선택({{value}})",
+        options: {
+          comfortable: "넉넉함",
+          compact: "조밀함",
+          ultra: "초압축",
+        },
+      },
+      immersiveStatusBar: {
+        label: "상태 표시줄 숨기기",
+        description: "상태 표시줄을 숨기고 콘텐츠를 가장자리까지 표시합니다(Android)",
+      },
       chatOutline: {
         title: "채팅 개요",
         description: "프롬프트 사이를 이동하기 위한 개요 표시",

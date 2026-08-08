@@ -4,6 +4,7 @@ import { PortalProvider } from "@gorhom/portal";
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
+import * as ScreenOrientation from "expo-screen-orientation";
 import { Stack, useNavigationContainerRef, usePathname, useRouter } from "expo-router";
 import {
   createContext,
@@ -16,7 +17,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { AppState, useWindowDimensions, View } from "react-native";
+import { AppState, Platform, useWindowDimensions, View } from "react-native";
 import { GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -36,6 +37,7 @@ import { WindowSidebarMenuToggle } from "@/components/headers/menu-header";
 import { SidebarModelProvider } from "@/components/sidebar/sidebar-model";
 import { WorkspacePinShortcutHandler } from "@/components/workspace-pin-shortcut-handler";
 import { CompactExplorerSidebarHost } from "@/components/compact-explorer-sidebar-host";
+import { ImmersiveInsetsOverride } from "@/components/immersive-insets-override";
 import { ProviderSettingsHost } from "@/components/provider-settings-host";
 import { RootErrorBoundary } from "@/components/root-error-boundary";
 import { WorkspaceSetupDialog } from "@/components/workspace-setup-dialog";
@@ -82,6 +84,7 @@ import { useGlobalNewWorkspaceAction } from "@/hooks/use-global-new-workspace-ac
 import { useLatchedBoolean } from "@/hooks/use-latched-boolean";
 import { useFaviconStatus } from "@/hooks/use-favicon-status";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { useNetworkReconnect } from "@/hooks/use-network-reconnect";
 import { KeyboardShiftProvider } from "@/hooks/use-keyboard-shift-style";
 import { useCompactWebViewportZoomLock } from "@/hooks/use-compact-web-viewport-zoom-lock";
 import { useOpenProject } from "@/hooks/use-open-project";
@@ -104,6 +107,7 @@ import {
 } from "@/runtime/host-runtime";
 import { getDaemonStartService } from "@/runtime/daemon-start-service";
 import { applyAppearance } from "@/screens/settings/appearance/apply-appearance";
+import { setImmersiveStatusBar } from "../../modules/immersive-status-bar/src";
 import { selectIsAgentListOpen, usePanelStore } from "@/stores/panel-store";
 import { flushDraftPersistStorage } from "@/stores/draft-store";
 import { THEME_TO_UNISTYLES, type ThemeName } from "@/styles/theme";
@@ -347,6 +351,8 @@ function HostRuntimeBootstrapProvider({ children }: { children: ReactNode }) {
       shouldStartDaemon: shouldStartBuiltInDaemon,
     });
   }, []);
+
+  useNetworkReconnect();
 
   const anyOnlineHostServerId = useEarliestOnlineHostServerId();
   const daemonStartError = useDaemonStartLastError();
@@ -629,6 +635,7 @@ function MobileGestureWrapper({
 function ProvidersWrapper({ children }: { children: ReactNode }) {
   const { settings, isLoading: settingsLoading } = useAppSettings();
   const { upsertConnectionFromOfferUrl } = useHostMutations();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
   // Apply theme setting on mount and when it changes
   useEffect(() => {
@@ -641,9 +648,9 @@ function ProvidersWrapper({ children }: { children: ReactNode }) {
     }
   }, [settingsLoading, settings.theme]);
 
-  // Apply font / size / syntax appearance settings on mount and when they change.
-  // Sibling to the theme effect above; order is irrelevant because both patch all
-  // six registered theme keys, so the active key is always current.
+  // Apply font / size / syntax / density appearance settings on mount and when they
+  // change. Sibling to the theme effect above; order is irrelevant because both patch
+  // all six registered theme keys, so the active key is always current.
   useEffect(() => {
     if (settingsLoading) return;
     applyAppearance({
@@ -652,6 +659,7 @@ function ProvidersWrapper({ children }: { children: ReactNode }) {
       uiFontSize: settings.uiFontSize,
       codeFontSize: settings.codeFontSize,
       syntaxTheme: settings.syntaxTheme,
+      displayDensity: settings.displayDensity,
     });
   }, [
     settingsLoading,
@@ -660,7 +668,32 @@ function ProvidersWrapper({ children }: { children: ReactNode }) {
     settings.uiFontSize,
     settings.codeFontSize,
     settings.syntaxTheme,
+    settings.displayDensity,
   ]);
+
+  // Apply immersive (edge-to-edge, auto-hiding) status bar mode when the setting
+  // changes. No-op on non-Android platforms — the native module guards itself.
+  // windowWidth/windowHeight deps: rotation/fold config changes reset the insets
+  // state on some ROMs (ColorOS keeps reserving the hidden bar's band after a 90°
+  // rotation), so the immersive state must be re-asserted on every size change.
+  useEffect(() => {
+    if (settingsLoading) return;
+    setImmersiveStatusBar(settings.immersiveStatusBar);
+  }, [settingsLoading, settings.immersiveStatusBar, windowWidth, windowHeight]);
+
+  // On Android, let large screens (foldables unfolded past 600dp on the short edge)
+  // rotate freely; keep phone-sized screens locked to portrait. Re-locks on every
+  // window-size change, which is idempotent. The lock call is fire-and-forget with
+  // rejections swallowed — no state is touched, so nothing to guard after unmount.
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const unlocked = Math.min(windowWidth, windowHeight) >= 600;
+    void ScreenOrientation.lockAsync(
+      unlocked
+        ? ScreenOrientation.OrientationLock.ALL
+        : ScreenOrientation.OrientationLock.PORTRAIT_UP,
+    ).catch(() => {});
+  }, [windowWidth, windowHeight]);
 
   return (
     <VoiceProvider>
@@ -946,6 +979,24 @@ function RuntimeProviders({ children }: { children: ReactNode }) {
   );
 }
 
+// The chrome provider chain is a separate component so JSX nesting stays under the
+// repo's jsx-max-depth limit once the immersive override is wrapped around it.
+function AppChromeProviders({ children }: { children: ReactNode }) {
+  return (
+    <WindowChromeProvider>
+      <KeyboardProvider>
+        <KeyboardShiftProvider>
+          <ToastProvider>
+            <PortalProvider>
+              <BottomSheetModalProvider>{children}</BottomSheetModalProvider>
+            </PortalProvider>
+          </ToastProvider>
+        </KeyboardShiftProvider>
+      </KeyboardProvider>
+    </WindowChromeProvider>
+  );
+}
+
 // PortalProvider must stay inside normal app-wide context providers.
 // `@gorhom/portal` renders portaled children at the host's location in the
 // tree, so any context a portaled sheet might consume (QueryClient, theme,
@@ -955,17 +1006,12 @@ function RuntimeProviders({ children }: { children: ReactNode }) {
 function RootProviders({ children }: { children: ReactNode }) {
   return (
     <SafeAreaProvider>
-      <WindowChromeProvider>
-        <KeyboardProvider>
-          <KeyboardShiftProvider>
-            <ToastProvider>
-              <PortalProvider>
-                <BottomSheetModalProvider>{children}</BottomSheetModalProvider>
-              </PortalProvider>
-            </ToastProvider>
-          </KeyboardShiftProvider>
-        </KeyboardProvider>
-      </WindowChromeProvider>
+      {/* Must be inside SafeAreaProvider so the real (uncorrected) insets are
+          readable via useSafeAreaInsets; it re-publishes corrected insets on the
+          SafeAreaInsetsContext for the whole app tree below. */}
+      <ImmersiveInsetsOverride>
+        <AppChromeProviders>{children}</AppChromeProviders>
+      </ImmersiveInsetsOverride>
     </SafeAreaProvider>
   );
 }

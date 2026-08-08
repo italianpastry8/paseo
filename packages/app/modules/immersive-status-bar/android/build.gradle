@@ -1,0 +1,22 @@
+apply plugin: 'com.android.library'
+
+group = 'expo.modules.immersivestatusbar'
+version = '0.1.0'
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+useExpoPublishing()
+useDefaultAndroidSdkVersions()
+
+android {
+  namespace "expo.modules.immersivestatusbar"
+}
+
+dependencies {
+  // WindowInsetsControllerCompat / WindowInsetsCompat live in androidx.core.
+  // expo-modules-core already exposes core-ktx 1.13.1 as `api`; pin the same
+  // version here so the classes are on the compile classpath explicitly.
+  implementation 'androidx.core:core-ktx:1.13.1'
+}
