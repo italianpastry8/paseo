@@ -2530,6 +2530,20 @@ export const HubExecutionAgentCreateRequestSchema = z.object({
 
 export type HubExecutionAgentCreateRequest = z.infer<typeof HubExecutionAgentCreateRequestSchema>;
 
+export const HubExecutionAgentValidateRequestSchema = z.object({
+  type: z.literal("hub.execution.agent.validate.request"),
+  requestId: z.string(),
+  provider: z.string(),
+  model: z.string().optional(),
+  modeId: z.string().optional(),
+  thinkingOptionId: z.string().optional(),
+  providerOptions: ProviderOptionsSchema.optional(),
+});
+
+export type HubExecutionAgentValidateRequest = z.infer<
+  typeof HubExecutionAgentValidateRequestSchema
+>;
+
 const HubExecutionAgentCreateErrorSchema = z.discriminatedUnion("code", [
   z.object({
     code: z.literal("provider_options_invalid"),
@@ -2661,6 +2675,7 @@ export type HubExecutionControlRequest = z.infer<typeof HubExecutionControlReque
 
 export const SessionInboundMessageSchema = z.discriminatedUnion("type", [
   HubExecutionAgentCreateRequestSchema,
+  HubExecutionAgentValidateRequestSchema,
   HubExecutionControlRequestSchema,
   BrowserAutomationExecuteResponseSchema,
   VoiceAudioChunkMessageSchema,
@@ -3001,6 +3016,8 @@ export const ServerInfoStatusPayloadSchema = z
     features: z
       .object({
         providersSnapshot: z.boolean().optional(),
+        // COMPAT(providersSnapshotCwd): added in v0.3.2, remove gate after 2027-02-10.
+        providersSnapshotCwd: z.boolean().optional(),
         // COMPAT(checkoutForgeSetAutoMerge): added in v0.1.106, remove old
         // checkoutGithubSetAutoMerge fallback after 2026-12-28.
         checkoutForgeSetAutoMerge: z.boolean().optional(),
@@ -5164,6 +5181,7 @@ export const ListAvailableProvidersResponseSchema = z.object({
 export const GetProvidersSnapshotResponseMessageSchema = z.object({
   type: z.literal("get_providers_snapshot_response"),
   payload: z.object({
+    cwd: z.string().optional(),
     entries: z.array(ProviderSnapshotEntrySchema),
     compactSnapshot: CompactProviderSnapshotSchema.optional(),
     snapshotHash: z.string().optional(),
@@ -5455,6 +5473,25 @@ export const HubExecutionAgentCreateResponseSchema = z.object({
   }),
 });
 
+export const HubExecutionAgentValidationIssueSchema = z.object({
+  path: z.array(z.union([z.string(), z.number()])),
+  message: z.string(),
+});
+
+export type HubExecutionAgentValidationIssue = z.infer<
+  typeof HubExecutionAgentValidationIssueSchema
+>;
+
+export const HubExecutionAgentValidateResponseSchema = z.object({
+  type: z.literal("hub.execution.agent.validate.response"),
+  payload: z.object({
+    requestId: z.string(),
+    valid: z.boolean(),
+    issues: z.array(HubExecutionAgentValidationIssueSchema),
+    error: z.string().nullable(),
+  }),
+});
+
 export const HubExecutionControlResponseSchema = z.object({
   type: z.literal("hub.execution.control.response"),
   payload: z.object({
@@ -5485,12 +5522,16 @@ export const HubExecutionAgentStreamSchema = z.object({
 });
 
 export type HubExecutionAgentCreateResponse = z.infer<typeof HubExecutionAgentCreateResponseSchema>;
+export type HubExecutionAgentValidateResponse = z.infer<
+  typeof HubExecutionAgentValidateResponseSchema
+>;
 export type HubExecutionControlResponse = z.infer<typeof HubExecutionControlResponseSchema>;
 export type HubExecutionAgentUpdate = z.infer<typeof HubExecutionAgentUpdateSchema>;
 export type HubExecutionAgentStream = z.infer<typeof HubExecutionAgentStreamSchema>;
 
 export const HubExecutionOutboundMessageSchema = z.discriminatedUnion("type", [
   HubExecutionAgentCreateResponseSchema,
+  HubExecutionAgentValidateResponseSchema,
   HubExecutionControlResponseSchema,
   HubExecutionAgentUpdateSchema,
   HubExecutionAgentStreamSchema,
@@ -5741,6 +5782,7 @@ export const HostMcpChangedMessageSchema = z.object({
 
 export const SessionOutboundMessageSchema = z.discriminatedUnion("type", [
   HubExecutionAgentCreateResponseSchema,
+  HubExecutionAgentValidateResponseSchema,
   HubExecutionControlResponseSchema,
   HubExecutionAgentUpdateSchema,
   HubExecutionAgentStreamSchema,
