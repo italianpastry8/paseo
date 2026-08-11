@@ -1,5 +1,3 @@
-import { SPACING } from "@/styles/theme";
-
 interface MarkdownNode {
   type?: string;
   index?: number;
@@ -12,11 +10,6 @@ interface MarkdownNode {
 
 const LIST_BULLET = "•";
 const DEFAULT_ORDERED_LIST_MARKUP = ".";
-const MARKDOWN_LIST_MARGIN_TOP = SPACING[1];
-const MARKDOWN_LIST_MARGIN_BOTTOM_TO_PROSE = SPACING[4];
-const MARKDOWN_LIST_MARGIN_BOTTOM_TO_LIST = SPACING[2];
-const MARKDOWN_NESTED_LIST_MARGIN_BOTTOM = 0;
-const MARKDOWN_TERMINAL_LIST_MARGIN_BOTTOM = 0;
 
 function toParentNodes(parent: unknown): MarkdownNode[] {
   if (Array.isArray(parent)) {
@@ -91,31 +84,25 @@ function hasListItemAncestor(parent: unknown): boolean {
   return toParentNodes(parent).some((ancestor) => ancestor?.type === "list_item");
 }
 
-export function getMarkdownListSpacing(
-  node: MarkdownNode,
-  parent: unknown,
-): { marginTop: number; marginBottom: number } {
+/**
+ * Trailing gap after a list block, by what follows it. The actual margins live in
+ * `markdownListSpacingStyles` (`@/styles/markdown-styles`) so they track the display
+ * density's scaled spacing ramp. "none" covers nested lists (the parent list item owns
+ * the rhythm) and terminal lists (the message container owns the trailing space).
+ */
+export type MarkdownListSpacing = "toProse" | "toList" | "none";
+
+export function getMarkdownListSpacing(node: MarkdownNode, parent: unknown): MarkdownListSpacing {
   if (hasListItemAncestor(parent)) {
-    return {
-      marginTop: MARKDOWN_LIST_MARGIN_TOP,
-      marginBottom: MARKDOWN_NESTED_LIST_MARGIN_BOTTOM,
-    };
+    return "none";
   }
 
   const nextType = getMarkdownNextSiblingType(node, parent);
   if (!nextType) {
-    return {
-      marginTop: MARKDOWN_LIST_MARGIN_TOP,
-      marginBottom: MARKDOWN_TERMINAL_LIST_MARGIN_BOTTOM,
-    };
+    return "none";
   }
 
-  return {
-    marginTop: MARKDOWN_LIST_MARGIN_TOP,
-    marginBottom: isListType(nextType)
-      ? MARKDOWN_LIST_MARGIN_BOTTOM_TO_LIST
-      : MARKDOWN_LIST_MARGIN_BOTTOM_TO_PROSE,
-  };
+  return isListType(nextType) ? "toList" : "toProse";
 }
 
 export function getMarkdownListMarker(

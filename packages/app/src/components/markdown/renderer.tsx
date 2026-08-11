@@ -25,9 +25,17 @@ import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import { HighlightedCodeBlock } from "@/components/highlighted-code-block";
 import { MarkdownParagraphView, MarkdownTextSpan } from "@/components/markdown-text";
 import { MarkdownTableCellText } from "@/components/markdown-text-selection";
-import { getMarkdownListMarker, getMarkdownListSpacing } from "@/utils/markdown-list";
+import {
+  getMarkdownListMarker,
+  getMarkdownListSpacing,
+  type MarkdownListSpacing,
+} from "@/utils/markdown-list";
 import { markdownNodeContainsType } from "@/utils/markdown-ast";
-import { createCompactMarkdownStyles, createMarkdownStyles } from "@/styles/markdown-styles";
+import {
+  createCompactMarkdownStyles,
+  createMarkdownStyles,
+  markdownListSpacingStyles,
+} from "@/styles/markdown-styles";
 import type { Theme } from "@/styles/theme";
 import { openExternalUrl } from "@/utils/open-external-url";
 import {
@@ -448,12 +456,15 @@ function MarkdownListItemContent({ contentStyle, children }: MarkdownListItemCon
 
 interface MarkdownListViewProps {
   baseStyle: ViewStyle;
-  spacing: { marginTop: number; marginBottom: number };
+  spacing: MarkdownListSpacing;
   children: ReactNode;
 }
 
 function MarkdownListView({ baseStyle, spacing, children }: MarkdownListViewProps) {
-  const style = useMemo(() => [baseStyle, spacing], [baseStyle, spacing]);
+  const style = useMemo(
+    () => [baseStyle, markdownListSpacingStyles[spacing]],
+    [baseStyle, spacing],
+  );
   return <View style={style}>{children}</View>;
 }
 

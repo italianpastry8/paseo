@@ -31,10 +31,13 @@ const BASE_UI_REFERENCE = FONT_SIZE.base; // 16
 // ramps), never from live theme values, so repeats never compound. Density deliberately
 // does NOT scale fontSize — type size belongs to the dedicated uiFontSize/codeFontSize
 // settings; density only tightens space (gaps, paddings, margins).
+// Even 0.2 steps: prose block rhythm (paragraph, heading, list, table gaps) only moves
+// with this ramp, and shallower steps (1.0/0.9/0.8) rounded to nearly identical pixels
+// in chat markdown, so adjacent densities looked the same.
 const DENSITY_SCALE: Record<DisplayDensity, number> = {
   comfortable: 1,
-  compact: 0.9,
-  ultra: 0.8,
+  compact: 0.8,
+  ultra: 0.6,
 };
 
 export interface AppearanceInput {

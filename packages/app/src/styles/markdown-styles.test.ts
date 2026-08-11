@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createCompactMarkdownStyles, createMarkdownStyles } from "./markdown-styles";
+import {
+  createCompactMarkdownStyles,
+  createMarkdownStyles,
+  markdownListSpacingStyles,
+} from "./markdown-styles";
 import { darkTheme } from "./theme";
 
 describe("createMarkdownStyles", () => {
@@ -92,5 +96,39 @@ describe("createMarkdownStyles", () => {
       fontSize: darkTheme.fontSize.code,
     });
     expect(compactStyles.code_inline).not.toHaveProperty("lineHeight");
+  });
+
+  it("keeps list and inline spacing on the theme spacing ramp", () => {
+    const styles = createMarkdownStyles(darkTheme);
+
+    expect(styles.bullet_list_icon).toMatchObject({
+      marginRight: darkTheme.spacing[1],
+    });
+    expect(styles.ordered_list_icon).toMatchObject({
+      marginRight: darkTheme.spacing[1],
+    });
+    expect(styles.code_inline).toMatchObject({
+      paddingVertical: darkTheme.spacing[0.5],
+    });
+  });
+});
+
+describe("markdownListSpacingStyles", () => {
+  it("maps each list spacing variant to a margin pair", () => {
+    // The vitest unistyles stub mirrors the comfortable spacing ramp, so these
+    // pin the comfortable-density rhythm: 4px above a list, 16px before prose,
+    // 8px between adjacent lists, and no trailing gap for nested/terminal lists.
+    expect(markdownListSpacingStyles.toProse).toMatchObject({
+      marginTop: 4,
+      marginBottom: 16,
+    });
+    expect(markdownListSpacingStyles.toList).toMatchObject({
+      marginTop: 4,
+      marginBottom: 8,
+    });
+    expect(markdownListSpacingStyles.none).toMatchObject({
+      marginTop: 4,
+      marginBottom: 0,
+    });
   });
 });

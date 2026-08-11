@@ -1,7 +1,30 @@
+import { StyleSheet } from "react-native-unistyles";
 import type { Theme } from "./theme";
 import { isWeb } from "@/constants/platform";
 
 const webSelectableTextStyle = isWeb ? { userSelect: "text" as const } : {};
+
+/**
+ * List block margins, keyed by `MarkdownListSpacing` from `@/utils/markdown-list`.
+ * Applied by the MarkdownListView wrappers in the markdown renderers: the bottom gap
+ * depends on the list's next sibling, so it cannot be baked into the style map.
+ * Going through the density-scaled spacing ramp keeps list rhythm in step with the
+ * paragraph/heading margins under the compact and ultra display densities.
+ */
+export const markdownListSpacingStyles = StyleSheet.create((theme) => ({
+  toProse: {
+    marginTop: theme.spacing[1],
+    marginBottom: theme.spacing[4],
+  },
+  toList: {
+    marginTop: theme.spacing[1],
+    marginBottom: theme.spacing[2],
+  },
+  none: {
+    marginTop: theme.spacing[1],
+    marginBottom: 0,
+  },
+}));
 
 /**
  * Creates comprehensive markdown styles for react-native-markdown-display.
@@ -167,7 +190,7 @@ export function createMarkdownStyles(theme: Theme) {
       backgroundColor: theme.colors.surface2,
       color: theme.colors.foreground,
       paddingHorizontal: theme.spacing[1],
-      paddingVertical: 2,
+      paddingVertical: theme.spacing[0.5],
       borderRadius: theme.borderRadius.md,
       borderWidth: 0,
       fontFamily: theme.fontFamily.mono,
@@ -282,7 +305,7 @@ export function createMarkdownStyles(theme: Theme) {
     bullet_list_icon: {
       ...webSelectableTextStyle,
       color: theme.colors.foregroundMuted,
-      marginRight: 4,
+      marginRight: theme.spacing[1],
       fontSize: theme.fontSize.base,
       lineHeight: 22,
     },
@@ -290,7 +313,7 @@ export function createMarkdownStyles(theme: Theme) {
     ordered_list_icon: {
       ...webSelectableTextStyle,
       color: theme.colors.foregroundMuted,
-      marginRight: 4,
+      marginRight: theme.spacing[1],
       fontSize: theme.fontSize.base,
       fontWeight: theme.fontWeight.normal,
       lineHeight: 22,

@@ -60,6 +60,7 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from "react-native-svg";
 import { CODE_SURFACE_DATASET } from "@/styles/code-surface";
+import { markdownListSpacingStyles } from "@/styles/markdown-styles";
 import { inlineUnistylesStyle } from "@/styles/unistyles-inline-style";
 import { MarkdownRenderer, type MarkdownStyles } from "@/components/markdown/renderer";
 import type { TodoEntry, UserMessageImageAttachment } from "@/types/stream";
@@ -67,7 +68,11 @@ import type { AgentAttachment } from "@getpaseo/protocol/messages";
 import type { ToolCallDetail } from "@getpaseo/protocol/agent-types";
 import { buildToolCallPresentation } from "@/tool-calls/presentation";
 import { resolveToolCallIcon } from "@/utils/tool-call-icon";
-import { getMarkdownListMarker, getMarkdownListSpacing } from "@/utils/markdown-list";
+import {
+  getMarkdownListMarker,
+  getMarkdownListSpacing,
+  type MarkdownListSpacing,
+} from "@/utils/markdown-list";
 import { markdownNodeContainsType } from "@/utils/markdown-ast";
 import { useStableEvent } from "@/hooks/use-stable-event";
 import { HighlightedCodeBlock } from "@/components/highlighted-code-block";
@@ -1421,7 +1426,7 @@ interface MarkdownListViewProps {
   baseStyle: ViewStyle;
   copyTag: "ol" | "ul";
   orderedStart?: unknown;
-  spacing: { marginTop: number; marginBottom: number };
+  spacing: MarkdownListSpacing;
   children: ReactNode;
 }
 
@@ -1432,7 +1437,10 @@ function MarkdownListView({
   spacing,
   children,
 }: MarkdownListViewProps) {
-  const style = useMemo(() => [baseStyle, spacing], [baseStyle, spacing]);
+  const style = useMemo(
+    () => [baseStyle, markdownListSpacingStyles[spacing]],
+    [baseStyle, spacing],
+  );
   const copyDataSet =
     copyTag === "ol" ? markdownCopyOrderedListDataSet(orderedStart) : markdownCopyDataSet.ul;
   return (

@@ -46,30 +46,21 @@ describe("getMarkdownListSpacing", () => {
     const list = { type: "bullet_list" };
     const body = { type: "body", children: [list, paragraph] };
 
-    expect(getMarkdownListSpacing(list, [body])).toEqual({
-      marginTop: 4,
-      marginBottom: 16,
-    });
+    expect(getMarkdownListSpacing(list, [body])).toBe("toProse");
   });
 
   it("does not add bottom spacing after a list at the end of a markdown block", () => {
     const list = { type: "bullet_list" };
     const body = { type: "body", children: [list] };
 
-    expect(getMarkdownListSpacing(list, [body])).toEqual({
-      marginTop: 4,
-      marginBottom: 0,
-    });
+    expect(getMarkdownListSpacing(list, [body])).toBe("none");
   });
 
   it("uses a smaller gap between adjacent top-level lists", () => {
     const list = { type: "bullet_list" };
     const body = { type: "body", children: [list, { type: "ordered_list" }] };
 
-    expect(getMarkdownListSpacing(list, [body])).toEqual({
-      marginTop: 4,
-      marginBottom: 8,
-    });
+    expect(getMarkdownListSpacing(list, [body])).toBe("toList");
   });
 
   it("does not add section spacing after a nested list", () => {
@@ -79,9 +70,6 @@ describe("getMarkdownListSpacing", () => {
         { type: "bullet_list" },
         { type: "body" },
       ]),
-    ).toEqual({
-      marginTop: 4,
-      marginBottom: 0,
-    });
+    ).toBe("none");
   });
 });
