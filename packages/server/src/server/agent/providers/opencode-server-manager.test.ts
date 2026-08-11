@@ -228,6 +228,29 @@ describe("OpenCodeServerManager generations", () => {
 
     await next.release();
   });
+
+  test("marks the server ready via a port probe when stdout stays silent", async () => {
+    // The spawned process never prints "listening on" (autoAnnounce: false), so
+    // only the TCP port probe can confirm readiness — mirroring the real-world
+    // case where the line is delayed/lost on the stdout pipe.
+    const listener = net.createServer(() => {});
+    await new Promise<void>((resolve) => listener.listen(0, "127.0.0.1", resolve));
+    const port = (listener.address() as net.AddressInfo).port;
+    try {
+      const { manager } = createTestManager([port], {
+        autoAnnounce: false,
+        useRealPortProbe: true,
+      });
+
+      const acquisition = await manager.acquireCurrent();
+      expect(acquisition.server.port).toBe(port);
+
+      await acquisition.release();
+      await manager.shutdown();
+    } finally {
+      listener.close();
+    }
+  });
 });
 
 describe("OpenCodeServerManager managed process ledger", () => {
@@ -348,6 +371,7 @@ function createTestManager(
     autoAnnounce?: boolean;
     baseEnv?: Record<string, string>;
     opencodeHomeDir?: string;
+    useRealPortProbe?: boolean;
   } = {},
 ): {
   manager: OpenCodeServerManager;
@@ -367,6 +391,9 @@ function createTestManager(
       ...(opencodeHomeDir ? { resolveHomeDir: () => opencodeHomeDir } : {}),
       spawnServerProcess: runtime.spawnServerProcess,
       terminateProcess: runtime.terminateProcess,
+      // Default: stub the port probe so fake-timer startup tests stay
+      // deterministic. Tests that exercise the probe pass useRealPortProbe.
+      ...(options.useRealPortProbe ? {} : { probeServerPort: async () => false }),
     }),
     runtime,
   };

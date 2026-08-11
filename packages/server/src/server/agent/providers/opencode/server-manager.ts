@@ -18,6 +18,9 @@ import { resolveOpenCodeHomeDir } from "./paths.js";
 
 const OPENCODE_SERVER_GRACEFUL_SHUTDOWN_TIMEOUT_MS = 5_000;
 const OPENCODE_SERVER_FORCE_SHUTDOWN_TIMEOUT_MS = 1_000;
+const OPENCODE_SERVER_STARTUP_TIMEOUT_MS = 30_000;
+// Polling interval for the port-probe readiness fallback. See defaultProbeServerPort.
+const OPENCODE_SERVER_PORT_PROBE_INTERVAL_MS = 750;
 
 export interface OpenCodeServerAcquisition {
   server: { port: number; url: string };
@@ -50,6 +53,7 @@ export type OpenCodeServerProcessSpawner = (
   args: string[],
   options: SpawnProcessOptions,
 ) => ChildProcess;
+export type OpenCodeServerPortProbe = (port: number) => Promise<boolean>;
 
 export interface OpenCodeServerManagerOptions {
   logger: Logger;
@@ -61,6 +65,7 @@ export interface OpenCodeServerManagerOptions {
   resolveCommandPrefix?: OpenCodeCommandPrefixResolver;
   resolveHomeDir?: () => string;
   spawnServerProcess?: OpenCodeServerProcessSpawner;
+  probeServerPort?: OpenCodeServerPortProbe;
 }
 
 export class OpenCodeServerManager implements OpenCodeServerManagerLike {
@@ -80,6 +85,7 @@ export class OpenCodeServerManager implements OpenCodeServerManagerLike {
   private readonly resolveCommandPrefix: OpenCodeCommandPrefixResolver;
   private readonly resolveHomeDir: () => string;
   private readonly spawnServerProcess: OpenCodeServerProcessSpawner;
+  private readonly probeServerPort: OpenCodeServerPortProbe;
 
   constructor(options: OpenCodeServerManagerOptions) {
     this.logger = options.logger;
@@ -94,6 +100,7 @@ export class OpenCodeServerManager implements OpenCodeServerManagerLike {
       (() => resolveProviderCommandPrefix(this.runtimeSettings?.command, resolveOpenCodeBinary));
     this.resolveHomeDir = options.resolveHomeDir ?? resolveOpenCodeHomeDir;
     this.spawnServerProcess = options.spawnServerProcess ?? spawnProcess;
+    this.probeServerPort = options.probeServerPort ?? defaultProbeServerPort;
   }
 
   static getInstance(
@@ -355,30 +362,73 @@ export class OpenCodeServerManager implements OpenCodeServerManagerLike {
 
     const ready = new Promise<void>((resolve, reject) => {
       let timeout: ReturnType<typeof setTimeout>;
+      let probeTimer: ReturnType<typeof setTimeout> | null = null;
+
+      const clearProbe = (): void => {
+        if (probeTimer !== null) {
+          clearTimeout(probeTimer);
+          probeTimer = null;
+        }
+      };
+      const markReady = (reason: string): void => {
+        if (settled) {
+          return;
+        }
+        started = true;
+        settled = true;
+        clearTimeout(timeout);
+        clearProbe();
+        this.logger.info({ port, reason }, "OpenCode server ready");
+        resolve();
+      };
       const failStartup = (error: Error) => {
         if (settled) {
           return;
         }
         settled = true;
         clearTimeout(timeout);
+        clearProbe();
         reject(error);
       };
       timeout = setTimeout(() => {
         if (!started) {
           failStartup(new Error(buildStartupErrorMessage("OpenCode server startup timeout")));
         }
-      }, 30_000);
+      }, OPENCODE_SERVER_STARTUP_TIMEOUT_MS);
 
       serverProcess.stdout?.on("data", (data: Buffer) => {
         const output = data.toString();
         stdoutBuffer = appendCapped(stdoutBuffer, output);
-        if (output.includes("listening on") && !settled) {
-          started = true;
-          settled = true;
-          clearTimeout(timeout);
-          resolve();
+        if (output.includes("listening on")) {
+          markReady("listening on");
         }
       });
+
+      // Fallback readiness signal. The OpenCode server can bind its port before
+      // the "listening on" line is flushed down the stdout pipe; under heavy
+      // fd/memory pressure that line never arrives and we time out over a server
+      // that is actually serving (leaking it as an orphan). A successful TCP
+      // handshake on the allocated port means the server is up regardless of
+      // stdout delivery, so poll until the startup timeout.
+      const scheduleProbe = (): void => {
+        probeTimer = setTimeout(() => {
+          probeTimer = null;
+          if (settled) {
+            return;
+          }
+          void this.probeServerPort(port).then((open) => {
+            if (open) {
+              markReady("port-probe");
+              return;
+            }
+            if (!settled) {
+              scheduleProbe();
+            }
+            return;
+          });
+        }, OPENCODE_SERVER_PORT_PROBE_INTERVAL_MS);
+      };
+      scheduleProbe();
 
       serverProcess.stderr?.on("data", (data: Buffer) => {
         const output = data.toString();
@@ -459,6 +509,11 @@ export class OpenCodeServerManager implements OpenCodeServerManagerLike {
         );
       },
     });
+    // The server is spawned detached, so it leads its own POSIX process group.
+    // The generic tree walker above can miss detached/double-forked Bun helper
+    // processes and leak them as listening orphans. Guarantee the whole group is
+    // reaped; this is a no-op when terminateProcess already brought it down.
+    await this.ensureServerProcessGroupKilled(server.process);
     if (result === "kill-timeout") {
       this.logger.warn(
         { timeoutMs: OPENCODE_SERVER_FORCE_SHUTDOWN_TIMEOUT_MS },
@@ -471,6 +526,33 @@ export class OpenCodeServerManager implements OpenCodeServerManagerLike {
       server.managedProcessRecord = undefined;
     } else {
       this.removeManagedServerRecord(server);
+    }
+  }
+
+  private async ensureServerProcessGroupKilled(proc: ChildProcess): Promise<void> {
+    const isExited = (): boolean =>
+      (proc.exitCode !== null && proc.exitCode !== undefined) ||
+      (proc.signalCode !== null && proc.signalCode !== undefined);
+    if (isExited()) {
+      return;
+    }
+    const pid = proc.pid;
+    if (typeof pid !== "number" || pid <= 0 || process.platform === "win32") {
+      return;
+    }
+    // Signal the process group (-pid) to reach every descendant of the detached
+    // server, not just the direct child. Stop as soon as exit is observed or the
+    // group no longer exists.
+    for (const signal of ["SIGTERM", "SIGKILL"] as const) {
+      if (isExited()) {
+        return;
+      }
+      try {
+        process.kill(-pid, signal);
+      } catch {
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, signal === "SIGTERM" ? 200 : 100));
     }
   }
 
@@ -579,6 +661,28 @@ async function pathExists(filePath: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// Default readiness probe: a single short-lived TCP connect to the server port.
+// A connection that succeeds means the server is listening. The timeout uses the
+// socket's own I/O timer (not setTimeout) so behavior is independent of any
+// fake-timer harness in tests that inject this seam.
+function defaultProbeServerPort(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = net.connect({ host: "127.0.0.1", port });
+    let settled = false;
+    const finish = (open: boolean) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      socket.destroy();
+      resolve(open);
+    };
+    socket.once("connect", () => finish(true));
+    socket.once("error", () => finish(false));
+    socket.setTimeout(500, () => finish(false));
+  });
 }
 
 function findAvailablePort(): Promise<number> {
